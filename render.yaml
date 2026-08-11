@@ -14,7 +14,7 @@ services:
     plan: free
     buildCommand: npm ci && npm run build
     startCommand: node server/scripts/init-db.mjs && node server/index.js
-    healthCheckPath: /api/auth/me
+    healthCheckPath: /api/openapi.json
     envVars:
       - key: NODE_ENV
         value: production

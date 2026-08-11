@@ -10,7 +10,9 @@
 | `NODE_ENV=production` | secure-cookie, trust proxy |
 | `PORT` | порт (платформы подставляют сами) |
 | `DATABASE_URL` | строка подключения к Postgres (если не задана — используются `PGHOST/PGUSER/PGPASSWORD/PGDATABASE`) |
-| `PGSSL=true` | включить SSL для Postgres (нужен на большинстве платформ) |
+
+Подключение к БД по `DATABASE_URL` само пробует TLS и, если провайдер его не использует,
+автоматически откатывается на обычное соединение — ничего настраивать не нужно.
 
 Схема БД применяется при старте (`node server/scripts/init-db.mjs`) — это идемпотентно.
 Демо-аккаунт и старые `data/*.json` в прод **не переносим**: пользователи регистрируются сами.
@@ -19,22 +21,22 @@
 
 ## Вариант 1. Railway.app (самый простой)
 
-1. Регистрация через GitHub, кнопка **New Project → Deploy from GitHub repo** → `LayneFox7/LFnote`.
-2. **New → Database → PostgreSQL** (Railway добавит `DATABASE_URL` в окружение сервиса).
-3. В настройках сервиса:
-   - Build: `npm ci && npm run build`
-   - Start: `node server/scripts/init-db.mjs && node server/index.js`
-   - Env: `NODE_ENV=production`, `PGSSL=true`
-4. Открыть выданный URL вида `https://lfnote-production.up.railway.app`.
+В репозитории лежит `railway.toml` — сборка, Start-команда и healthcheck уже заданы.
+
+1. railway.app → вход через GitHub → **New Project → Deploy from GitHub repo** → выбрать `LayneFox7/LFnote`.
+2. Кнопка **New → Database → PostgreSQL** — Railway создаст базу.
+3. Открыть сервис **LFnote** → вкладка **Variables** → добавить две переменные:
+   - `DATABASE_URL` = `${{Postgres.DATABASE_URL}}`
+   - `NODE_ENV` = `production`
+4. Деплой запустится сам. Готово — откройте URL вида `https://lfnote-production.up.railway.app`.
 
 Каждый пуш в `main` → автодеплой.
 
 ## Вариант 2. Render.com (в репозитории уже есть blueprint)
 
-1. Render → **New → Blueprint** → выбрать `LayneFox7/LFnote`.
-2. Render поднимет по `render.yaml` веб-сервис + базу Postgres и сам пропишет `DATABASE_URL`.
-3. В настройках сервиса добавьте env: `PGSSL=true`.
-4. URL вида `https://lfnote.onrender.com`.
+1. render.com → вход через GitHub → **New → Blueprint** → выбрать `LayneFox7/LFnote`.
+2. Render сам создаст веб-сервис + базу Postgres по `render.yaml` и подставит `DATABASE_URL`.
+3. Деплой запустится сам. URL вида `https://lfnote.onrender.com`.
 
 > На бесплатном тарифе Render «засыпает» сервис без трафика — первый заход может занять ~1 минуту.
 

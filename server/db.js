@@ -2,22 +2,43 @@ import pg from 'pg'
 
 const { Pool } = pg
 
-export const pool = new Pool(
-  process.env.DATABASE_URL
-    ? {
-        connectionString: process.env.DATABASE_URL,
-        ssl: process.env.PGSSL === 'true' ? { rejectUnauthorized: false } : undefined,
-      }
-    : {
-        host: process.env.PGHOST || 'localhost',
-        port: Number(process.env.PGPORT || 5432),
-        user: process.env.PGUSER || 'lfn',
-        password: process.env.PGPASSWORD || 'lfn_dev_2026',
-        database: process.env.PGDATABASE || 'lfnote',
-      },
-)
+function makeConfig(ssl) {
+  if (process.env.DATABASE_URL) {
+    return {
+      connectionString: process.env.DATABASE_URL,
+      ssl: ssl ? { rejectUnauthorized: false } : undefined,
+    }
+  }
+  return {
+    host: process.env.PGHOST || 'localhost',
+    port: Number(process.env.PGPORT || 5432),
+    user: process.env.PGUSER || 'lfn',
+    password: process.env.PGPASSWORD || 'lfn_dev_2026',
+    database: process.env.PGDATABASE || 'lfnote',
+  }
+}
 
-export const query = (text, params) => pool.query(text, params)
+async function createPool() {
+  const ssl = process.env.PGSSL !== 'false'
+  try {
+    const p = new Pool(makeConfig(ssl))
+    await p.query('SELECT 1')
+    return p
+  } catch (err) {
+    const sslError = /ssl|tls|pem|protocol/i.test(String(err?.message))
+    if (process.env.DATABASE_URL && ssl && sslError) {
+      const p = new Pool(makeConfig(false))
+      await p.query('SELECT 1')
+      return p
+    }
+    throw err
+  }
+}
+
+export const pool = createPool()
+
+export const query = (text, params) => pool.then((p) => p.query(text, params))
+export const closePool = () => pool.then((p) => p.end())
 
 export const rowToTask = (r) => ({
   id: r.id,

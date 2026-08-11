@@ -1,5 +1,5 @@
 import { readFileSync, existsSync } from 'node:fs'
-import { pool, query } from '../db.js'
+import { query, closePool } from '../db.js'
 import { hashPassword } from '../auth.js'
 
 const dataDir = new URL('../../data/', import.meta.url)
@@ -89,4 +89,4 @@ for (const [date, color] of Object.entries(columnsJson)) {
 }
 
 console.log(`Готово: карточек ${inserted}, тегов ${tagCount}, связей тегов ${ttCount}, стрелок ${linkCount}, цветов колонок ${colCount}`)
-await pool.end()
+await closePool()
