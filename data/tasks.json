@@ -1,0 +1,105 @@
+{
+  "tasks": [
+    {
+      "id": "1e75e5d9-4136-4bcf-9d4c-fd5c543580f0",
+      "text": "Провести тех.собес",
+      "date": "2026-08-12",
+      "done": true,
+      "createdAt": "2026-08-11T19:58:34.818Z",
+      "completedAt": "2026-08-11T20:00:26.082Z",
+      "order": 1786478314818
+    },
+    {
+      "id": "977e78db-c08e-4c68-a996-4b6c94ca68ca",
+      "text": "вапвап",
+      "date": "2026-08-11",
+      "done": true,
+      "createdAt": "2026-08-11T20:31:18.241Z",
+      "completedAt": "2026-08-11T20:31:20.091Z",
+      "order": 1786480278241
+    },
+    {
+      "id": "de709c30-399b-4015-9070-7935ada5058d",
+      "text": "папа",
+      "date": "2026-08-11",
+      "done": true,
+      "createdAt": "2026-08-11T20:31:30.392Z",
+      "completedAt": "2026-08-11T20:31:32.437Z",
+      "order": 1786480290392
+    },
+    {
+      "id": "d83d6b94-26bc-4e3b-a57a-282033c9d3e0",
+      "text": "ыуаыв",
+      "date": "2026-08-11",
+      "done": false,
+      "createdAt": "2026-08-11T20:32:10.919Z",
+      "completedAt": null,
+      "order": 1000
+    },
+    {
+      "id": "40b38044-a551-45f7-9a4f-161a15132f85",
+      "text": "ыфаыва",
+      "date": "2026-08-13",
+      "done": false,
+      "createdAt": "2026-08-11T20:32:13.649Z",
+      "completedAt": null,
+      "order": 2000,
+      "style": {
+        "hatch": true
+      }
+    },
+    {
+      "id": "527dd22a-d72d-4f4c-826b-4ca9f359023c",
+      "text": "ыфуафыу",
+      "date": "2026-08-13",
+      "done": false,
+      "createdAt": "2026-08-11T20:32:15.598Z",
+      "completedAt": null,
+      "order": 1000
+    },
+    {
+      "id": "a449847d-c84d-4f8a-9ba5-dc278f86361a",
+      "text": "выап",
+      "date": "2026-08-13",
+      "done": false,
+      "createdAt": "2026-08-11T20:36:12.792Z",
+      "completedAt": null,
+      "order": 3000
+    },
+    {
+      "id": "1a0f69ad-6b45-4067-a91c-7725a368f2cf",
+      "text": "ваапвыа",
+      "date": "2026-08-11",
+      "done": false,
+      "createdAt": "2026-08-11T20:45:26.914Z",
+      "completedAt": null,
+      "order": 1786481126914
+    },
+    {
+      "id": "312e9827-b5bd-429f-99ca-02f16f1369be",
+      "text": "ваыпвап",
+      "date": "2026-08-11",
+      "done": false,
+      "createdAt": "2026-08-11T20:45:27.951Z",
+      "completedAt": null,
+      "order": 1786481127951,
+      "style": {
+        "hatch": true,
+        "bg": "#d9534f",
+        "font": null
+      },
+      "tags": [
+        "work"
+      ]
+    },
+    {
+      "id": "3565d04f-127b-4d0a-9857-8f1129bbd548",
+      "text": "выапваып",
+      "date": "2026-08-11",
+      "done": false,
+      "createdAt": "2026-08-11T20:45:28.759Z",
+      "completedAt": null,
+      "order": 1786481128759
+    }
+  ]
+}
