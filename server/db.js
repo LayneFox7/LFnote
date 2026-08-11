@@ -6,6 +6,7 @@ function makeConfig(ssl) {
   if (process.env.DATABASE_URL) {
     return {
       connectionString: process.env.DATABASE_URL,
+      connectionTimeoutMillis: 10000,
       ssl: ssl ? { rejectUnauthorized: false } : undefined,
     }
   }
@@ -15,23 +16,37 @@ function makeConfig(ssl) {
     user: process.env.PGUSER || 'lfn',
     password: process.env.PGPASSWORD || 'lfn_dev_2026',
     database: process.env.PGDATABASE || 'lfnote',
+    connectionTimeoutMillis: 10000,
   }
 }
 
+const errMsg = (err) => {
+  if (Array.isArray(err?.errors)) return err.errors.map((x) => x?.message).filter(Boolean).join('; ')
+  return err?.message ?? String(err)
+}
+
 async function createPool() {
-  const ssl = process.env.PGSSL !== 'false'
-  try {
-    const p = new Pool(makeConfig(ssl))
-    await p.query('SELECT 1')
-    return p
-  } catch (err) {
-    const sslError = /ssl|tls|pem|protocol/i.test(String(err?.message))
-    if (process.env.DATABASE_URL && ssl && sslError) {
-      const p = new Pool(makeConfig(false))
+  const maxAttempts = 6
+  let ssl = process.env.PGSSL !== 'false'
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      const p = new Pool(makeConfig(ssl))
       await p.query('SELECT 1')
       return p
+    } catch (err) {
+      const sslError = /ssl|tls|pem|protocol/i.test(errMsg(err))
+      if (process.env.DATABASE_URL && ssl && sslError) {
+        ssl = false
+        attempt--
+        continue
+      }
+      console.error(`[db] Подключение к PostgreSQL не удалось (попытка ${attempt}/${maxAttempts}):`, errMsg(err))
+      if (attempt === maxAttempts) {
+        console.error('[db] DATABASE_URL задан:', process.env.DATABASE_URL ? 'да' : 'нет')
+        throw err
+      }
+      await new Promise((r) => setTimeout(r, 3000))
     }
-    throw err
   }
 }
 
