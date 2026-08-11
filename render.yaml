@@ -1,0 +1,24 @@
+# Render Blueprint — https://render.com/docs/blueprint-spec
+# Деплой: зайти на render.com → New → Blueprint → подключить репозиторий LayneFox7/LFnote
+
+databases:
+  - name: lfnote-db
+    plan: free
+    databaseName: lfnote
+    user: lfn
+
+services:
+  - type: web
+    name: lfnote
+    runtime: node
+    plan: free
+    buildCommand: npm ci && npm run build
+    startCommand: node server/scripts/init-db.mjs && node server/index.js
+    healthCheckPath: /api/auth/me
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        fromDatabase:
+          name: lfnote-db
+          property: connectionString

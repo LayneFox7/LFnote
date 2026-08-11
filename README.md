@@ -38,5 +38,19 @@ npm run dev                            # сервер :3001 + фронтенд :
 - `docs/API.md` — REST API (аутентификация, заметки, теги, папки, стрелки, цвета)
 - `docs/DB.md` — схема PostgreSQL и скрипты миграции
 - `docs/SCENARIOS.md` — установка, сброс, перенос данных, проверки
+- `docs/DEPLOYMENT.md` — запуск в интернете (Railway / Render / VPS + Docker)
 - `docs/USER_GUIDE.md` — руководство пользователя
 - Swagger UI: `http://localhost:3001/api/docs` (спецификация: `/api/openapi.json`)
+
+## Деплой в интернет
+
+В репозитории готовы `Dockerfile`, `docker-compose.yml` и blueprint `render.yaml`.
+Сервер в проде сам раздаёт собранный фронтенд. Подробности — в `docs/DEPLOYMENT.md`:
+
+```bash
+# VPS: одна команда поднимает приложение + PostgreSQL
+POSTGRES_PASSWORD='надёжный_пароль' docker compose up -d --build
+```
+
+Для Railway/Render: задеплойте репозиторий, платформа поднимет Postgres
+и пропишет `DATABASE_URL`; схема БД применится автоматически при старте.

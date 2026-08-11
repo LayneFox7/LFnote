@@ -22,9 +22,19 @@ import { openapi } from './openapi.js'
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const app = express()
 const PORT = process.env.PORT || 3001
+const IS_PROD = process.env.NODE_ENV === 'production'
+
+if (IS_PROD) app.set('trust proxy', 1)
 
 app.use(express.json())
 app.use(cookieParser())
+
+const COOKIE_OPTS = {
+  httpOnly: true,
+  sameSite: 'lax',
+  secure: IS_PROD,
+  maxAge: 30 * 24 * 60 * 60 * 1000,
+}
 
 const today = () => new Date().toISOString().slice(0, 10)
 
@@ -63,7 +73,7 @@ app.post('/api/auth/register', async (req, res) => {
     hashPassword(password),
   ])
   const token = await createSession(rows[0].id)
-  res.cookie(SESSION_COOKIE, token, { httpOnly: true, sameSite: 'lax', maxAge: 30 * 24 * 60 * 60 * 1000 })
+  res.cookie(SESSION_COOKIE, token, COOKIE_OPTS)
   res.status(201).json({ user: { id: rows[0].id, login: rows[0].login } })
 })
 
@@ -77,13 +87,13 @@ app.post('/api/auth/login', async (req, res) => {
     return res.status(401).json({ error: 'Неверный логин или пароль' })
   }
   const token = await createSession(user.id)
-  res.cookie(SESSION_COOKIE, token, { httpOnly: true, sameSite: 'lax', maxAge: 30 * 24 * 60 * 60 * 1000 })
+  res.cookie(SESSION_COOKIE, token, COOKIE_OPTS)
   res.json({ user: { id: user.id, login: user.login } })
 })
 
 app.post('/api/auth/logout', async (req, res) => {
   await destroySession(req.cookies?.[SESSION_COOKIE] ?? null)
-  res.clearCookie(SESSION_COOKIE)
+  res.clearCookie(SESSION_COOKIE, { httpOnly: true, sameSite: 'lax', secure: IS_PROD })
   res.json({ ok: true })
 })
 

@@ -2,13 +2,20 @@ import pg from 'pg'
 
 const { Pool } = pg
 
-export const pool = new Pool({
-  host: process.env.PGHOST || 'localhost',
-  port: Number(process.env.PGPORT || 5432),
-  user: process.env.PGUSER || 'lfn',
-  password: process.env.PGPASSWORD || 'lfn_dev_2026',
-  database: process.env.PGDATABASE || 'lfnote',
-})
+export const pool = new Pool(
+  process.env.DATABASE_URL
+    ? {
+        connectionString: process.env.DATABASE_URL,
+        ssl: process.env.PGSSL === 'true' ? { rejectUnauthorized: false } : undefined,
+      }
+    : {
+        host: process.env.PGHOST || 'localhost',
+        port: Number(process.env.PGPORT || 5432),
+        user: process.env.PGUSER || 'lfn',
+        password: process.env.PGPASSWORD || 'lfn_dev_2026',
+        database: process.env.PGDATABASE || 'lfnote',
+      },
+)
 
 export const query = (text, params) => pool.query(text, params)
 
