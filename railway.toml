@@ -5,7 +5,7 @@ builder = "NIXPACKS"
 buildCommand = "npm ci && npm run build"
 
 [deploy]
-startCommand = 'echo "BOOT-MARKER-$$"; (node server/scripts/init-db.mjs > /tmp/initdb.log 2>&1; echo "INITDB-EXITED rc=$?" >> /tmp/initdb.log) & (sleep 10; echo "===PS==="; ps -ef | grep -E "node" | grep -v grep; echo "===INITDB.LOG==="; cat /tmp/initdb.log; echo "===PS-END===") & node server/index.js'
+startCommand = 'node diag.mjs'
 healthcheckPath = "/api/openapi.json"
 healthcheckTimeout = 100
 restartPolicyType = "ON_FAILURE"
