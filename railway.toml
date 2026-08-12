@@ -5,7 +5,7 @@ builder = "NIXPACKS"
 buildCommand = "npm ci && npm run build"
 
 [deploy]
-startCommand = "node server/scripts/init-db.mjs && node server/index.js"
+startCommand = "node server/scripts/init-db.mjs; echo \"INIT_DONE rc=$?\"; node -e \"console.log('boot-check cwd='+process.cwd(), 'node='+process.version); try{require.resolve('express');console.log('express-resolvable')}catch(e){console.log('express-MISSING')}\"; node server/index.js"
 healthcheckPath = "/api/openapi.json"
 healthcheckTimeout = 100
 restartPolicyType = "ON_FAILURE"
