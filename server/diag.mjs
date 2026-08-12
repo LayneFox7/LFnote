@@ -5,9 +5,7 @@ const log = (...a) => console.log('[diag]', ...a)
 
 log('BEGIN', new Date().toISOString())
 log('node', process.version)
-log('PORT=', process.env.PORT ?? '(unset)', 'NODE_ENV=', process.env.NODE_ENV, 'PGSSL=', process.env.PGSSL)
-const raw = process.env.DATABASE_URL
-log('DATABASE_URL=', raw ? raw.replace(/:[^:@/]+@/, ':****@') : '(unset)')
+log('PORT=', process.env.PORT ?? '(unset)', 'NODE_ENV=', process.env.NODE_ENV)
 
 async function dbCheck() {
   const attempts = [
@@ -30,21 +28,32 @@ async function dbCheck() {
   return false
 }
 
-const dbOk = await dbCheck()
+await dbCheck()
 
-log('spawning server (server/index.js) with output capture...')
-const child = spawn(process.execPath, ['server/index.js'], { stdio: ['ignore', 'pipe', 'pipe'] })
-let out = ''
-let err = ''
-child.stdout.on('data', (d) => (out += d))
-child.stderr.on('data', (d) => (err += d))
-let exited = null
-child.on('exit', (code, sig) => { exited = { code, sig } })
-await new Promise((r) => setTimeout(r, 20000))
-log('SERVER-ALIVE?', exited ? `NO (exited code=${exited.code} sig=${exited.sig})` : 'yes (still running)')
-log('===SERVER-STDOUT===')
-console.log(out)
-log('===SERVER-STDERR===')
-console.log(err)
+const wait = (ms) => new Promise((r) => setTimeout(r, ms))
+const watch = (name, cmd, args, ms) =>
+  new Promise(async (resolve) => {
+    log(`${name}: spawning`, cmd, ...args)
+    const child = spawn(cmd, args, { stdio: ['ignore', 'pipe', 'pipe'] })
+    let out = ''
+    let err = ''
+    child.stdout.on('data', (d) => (out += d))
+    child.stderr.on('data', (d) => (err += d))
+    let exited = null
+    child.on('exit', (code, sig) => {
+      exited = { code, sig }
+    })
+    await wait(ms)
+    log(`${name}: EXITED?`, exited ? `yes code=${exited.code} sig=${exited.sig}` : `NO (still running after ${ms / 1000}s)`)
+    log(`===${name}-STDOUT===`)
+    console.log(out)
+    log(`===${name}-STDERR===`)
+    console.log(err)
+    if (!exited) child.kill('SIGKILL')
+    resolve()
+  })
+
+await watch('INITDB', process.execPath, ['server/scripts/init-db.mjs'], 15000)
+await watch('SERVER', process.execPath, ['server/index.js'], 8000)
 log('END', new Date().toISOString())
 process.exit(0)
