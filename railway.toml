@@ -5,7 +5,7 @@ builder = "NIXPACKS"
 buildCommand = "npm ci && npm run build"
 
 [deploy]
-startCommand = 'node server/diag.mjs'
+startCommand = 'node server/scripts/init-db.mjs && node server/index.js'
 healthcheckPath = "/api/openapi.json"
 healthcheckTimeout = 100
 restartPolicyType = "ON_FAILURE"
