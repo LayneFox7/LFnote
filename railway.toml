@@ -5,7 +5,7 @@ builder = "NIXPACKS"
 buildCommand = "npm ci && npm run build"
 
 [deploy]
-startCommand = 'node server/scripts/init-db.mjs > /tmp/init.log 2>&1 & sleep 3; echo "===INIT.LOG==="; cat /tmp/init.log; echo "===SRV-START==="; node server/index.js > /tmp/srv.log 2>&1 & sleep 12; echo "===SRV.LOG==="; cat /tmp/srv.log; echo "===PS==="; ps -ef; echo "===ALIVE==="; sleep 20'
+startCommand = 'node server/start.mjs'
 healthcheckPath = "/api/openapi.json"
 healthcheckTimeout = 100
 restartPolicyType = "ON_FAILURE"
