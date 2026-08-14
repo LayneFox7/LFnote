@@ -1,4 +1,5 @@
 import { useRichEditor, type EditorApi } from '../editor'
+import { splitHtmlLines } from '../sanitize'
 
 interface NewNoteEditorProps {
   onRegister: (api: EditorApi | null) => void
@@ -10,17 +11,19 @@ interface NewNoteEditorProps {
 export function NewNoteEditor({ onRegister, onCreate, onClose, onNavAdjacent }: NewNoteEditorProps) {
   const { ref, getHtml, clear } = useRichEditor('', onRegister)
 
+  const commitAll = () => {
+    const lines = splitHtmlLines(getHtml())
+    for (const line of lines) void onCreate(line)
+    return lines.length
+  }
+
   const commitAndKeep = () => {
-    const html = getHtml()
-    if (html) {
-      void onCreate(html)
-      clear()
-    }
+    commitAll()
+    clear()
   }
 
   const commitAndClose = () => {
-    const html = getHtml()
-    if (html) void onCreate(html)
+    commitAll()
     onClose()
   }
 
@@ -29,7 +32,7 @@ export function NewNoteEditor({ onRegister, onCreate, onClose, onNavAdjacent }: 
       <div
         ref={ref}
         className="task-editor-area new-note"
-        data-placeholder="Новая задача…"
+        data-placeholder="Новая задача… (Enter — создать, Shift+Enter — новая строка)"
         contentEditable
         suppressContentEditableWarning
         spellCheck={false}

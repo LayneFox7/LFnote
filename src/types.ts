@@ -2,6 +2,10 @@ export interface Task {
   id: string
   text: string
   date: string
+  startDate?: string | null
+  endDate?: string | null
+  parentId?: string | null
+  progress?: number
   done: boolean
   createdAt: string
   completedAt: string | null
@@ -10,6 +14,8 @@ export interface Task {
   tags?: string[]
   folderId?: number | null
 }
+
+export type View = 'week' | 'rows' | 'list' | 'gantt'
 
 export interface User {
   id: number

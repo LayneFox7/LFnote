@@ -10,6 +10,7 @@ interface FormatToolbarProps {
   onToggleDoneSelected?: () => void
   onDeleteSelected?: () => void
   onClearSelection?: () => void
+  onCopy?: () => void
 }
 
 export function FormatToolbar({
@@ -20,6 +21,7 @@ export function FormatToolbar({
   onToggleDoneSelected,
   onDeleteSelected,
   onClearSelection,
+  onCopy,
 }: FormatToolbarProps) {
   return (
     <div className="toolbar-top" onMouseDown={(e) => e.preventDefault()}>
@@ -84,6 +86,9 @@ export function FormatToolbar({
           </div>
           <button className="toolbar-btn done" onClick={onToggleDoneSelected} title="Отметить выбранные выполненными">
             ✓
+          </button>
+          <button className="toolbar-btn" onClick={onCopy} title="Скопировать список выбранных (⌘C)">
+            ⧉
           </button>
           <button className="toolbar-btn del" onClick={onDeleteSelected} title="Удалить выбранные">
             ×

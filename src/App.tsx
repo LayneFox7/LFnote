@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import type { CardStyle, Folder, Link, Task, User } from './types'
+import type { CardStyle, Folder, Link, Task, User, View } from './types'
 import {
   apiLogin,
   apiLogout,
@@ -25,11 +25,15 @@ import {
   setColumnColor as apiSetColumnColor,
   updateLink,
   updateTask,
+  type BatchUpdate,
 } from './api'
-import { countCheckboxes, toggleCheckboxInHtml } from './sanitize'
-import { addDays, toISODate, isToday, isPast } from './date'
+import { clipboardText, countCheckboxes, toggleCheckboxInHtml } from './sanitize'
+import { addDays, toISODate, isToday, isPast, formatDayHeader } from './date'
 import { DayColumn } from './components/DayColumn'
 import { DoneArea } from './components/DoneArea'
+import { GanttView } from './components/GanttView'
+import { ListView } from './components/ListView'
+import { RowsView } from './components/RowsView'
 import { WeekStrip } from './components/WeekStrip'
 import { FormatToolbar } from './components/FormatToolbar'
 import { TagBar } from './components/TagBar'
@@ -39,18 +43,26 @@ import { ArrowsProvider, ArrowsLayer } from './arrows'
 import type { EditorApi } from './editor'
 import './App.css'
 
-const WEEK = 7
 const DEFAULT_WIDTH = 190
 const MIN_WIDTH = 140
 const MAX_WIDTH = 440
 
-const loadWidths = (): number[] => {
+const loadNumDays = (): number => {
+  try {
+    const n = Number(localStorage.getItem('planner.numDays'))
+    if (n === 3 || n === 5 || n === 7) return n
+  } catch {}
+  return 7
+}
+
+const loadWidths = (count: number): number[] => {
   try {
     const raw = localStorage.getItem('planner.colWidths')
-    const arr = raw ? (JSON.parse(raw) as number[]) : []
-    if (Array.isArray(arr) && arr.length === WEEK && arr.every((n) => typeof n === 'number' && n > 0)) return arr
+    const obj = raw ? (JSON.parse(raw) as Record<string, number[]>) : {}
+    const arr = obj[String(count)]
+    if (Array.isArray(arr) && arr.length === count && arr.every((n) => typeof n === 'number' && n > 0)) return arr
   } catch {}
-  return Array(WEEK).fill(DEFAULT_WIDTH)
+  return Array(count).fill(DEFAULT_WIDTH)
 }
 
 interface NavState {
@@ -63,12 +75,83 @@ interface NewRequest {
   ts: number
 }
 
+interface MarqueeRect {
+  x: number
+  y: number
+  w: number
+  h: number
+}
+
+function useMarqueeSelect(container: HTMLElement | null, onSelect: (ids: string[]) => void): MarqueeRect | null {
+  const [rect, setRect] = useState<MarqueeRect | null>(null)
+
+  useEffect(() => {
+    if (!container) return
+    const isIgnored = (el: HTMLElement | null) =>
+      !!el?.closest?.('button, input, textarea, a, .task, .conn-handle, [contenteditable="true"]')
+
+    const onDown = (e: MouseEvent) => {
+      if (e.button !== 0 || e.shiftKey || e.ctrlKey || e.metaKey) return
+      if (isIgnored(e.target as HTMLElement)) return
+      const startX = e.clientX
+      const startY = e.clientY
+      let active = false
+
+      const onMove = (ev: MouseEvent) => {
+        if (!active && Math.hypot(ev.clientX - startX, ev.clientY - startY) < 5) return
+        if (!active) {
+          active = true
+          document.body.classList.add('marquee-active')
+        }
+        const r = container.getBoundingClientRect()
+        setRect({
+          x: ev.clientX - r.left,
+          y: ev.clientY - r.top,
+          w: ev.clientX - startX,
+          h: ev.clientY - startY,
+        })
+        const sel = {
+          left: Math.min(startX, ev.clientX),
+          top: Math.min(startY, ev.clientY),
+          right: Math.max(startX, ev.clientX),
+          bottom: Math.max(startY, ev.clientY),
+        }
+        const ids: string[] = []
+        container.querySelectorAll<HTMLElement>('.task').forEach((el) => {
+          const b = el.getBoundingClientRect()
+          if (b.right < sel.left || b.left > sel.right || b.bottom < sel.top || b.top > sel.bottom) return
+          const id = el.dataset.taskId
+          if (id) ids.push(id)
+        })
+        onSelect(ids)
+      }
+
+      const onUp = () => {
+        window.removeEventListener('pointermove', onMove)
+        window.removeEventListener('pointerup', onUp)
+        document.body.classList.remove('marquee-active')
+        setRect(null)
+      }
+
+      window.addEventListener('pointermove', onMove)
+      window.addEventListener('pointerup', onUp)
+    }
+
+    container.addEventListener('mousedown', onDown)
+    return () => container.removeEventListener('mousedown', onDown)
+  }, [container, onSelect])
+
+  return rect
+}
+
 function App() {
+  const [view, setView] = useState<View>('week')
+  const [numDays, setNumDays] = useState<number>(loadNumDays)
   const [tasks, setTasks] = useState<Task[]>([])
   const [links, setLinks] = useState<Link[]>([])
   const [centerIso, setCenterIso] = useState(() => toISODate(new Date()))
   const [columnColors, setColumnColors] = useState<Record<string, string>>({})
-  const [colWidths, setColWidths] = useState<number[]>(loadWidths)
+  const [colWidths, setColWidths] = useState<number[]>(() => loadWidths(loadNumDays()))
   const [selectedSet, setSelectedSet] = useState<Set<string>>(() => new Set())
   const [cardDrag, setCardDrag] = useState<{ x: number; y: number; overIso: string | null } | null>(null)
   const [tags, setTags] = useState<string[]>([])
@@ -85,6 +168,8 @@ function App() {
   const [editorApi, setEditorApi] = useState<EditorApi | null>(null)
   const [weekNode, setWeekNode] = useState<HTMLDivElement | null>(null)
   const [doneNode, setDoneNode] = useState<HTMLDivElement | null>(null)
+  const [rowsNode, setRowsNode] = useState<HTMLDivElement | null>(null)
+  const [listNode, setListNode] = useState<HTMLDivElement | null>(null)
 
   const cardDragRef = useRef<{ taskId: string; el: HTMLElement; startX: number; startY: number; dragging: boolean } | null>(null)
   const suppressClick = useRef(false)
@@ -124,9 +209,18 @@ function App() {
 
   useEffect(() => {
     try {
-      localStorage.setItem('planner.colWidths', JSON.stringify(colWidths))
+      const raw = localStorage.getItem('planner.colWidths')
+      const obj = raw ? (JSON.parse(raw) as Record<string, number[]>) : {}
+      obj[String(numDays)] = colWidths
+      localStorage.setItem('planner.colWidths', JSON.stringify(obj))
     } catch {}
-  }, [colWidths])
+  }, [colWidths, numDays])
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('planner.numDays', String(numDays))
+    } catch {}
+  }, [numDays])
 
   useEffect(() => {
     const onDocClick = (e: MouseEvent) => {
@@ -141,7 +235,7 @@ function App() {
   }, [])
 
   const center = new Date(`${centerIso}T12:00:00`)
-  const days = Array.from({ length: WEEK }, (_, i) => addDays(center, i - Math.floor(WEEK / 2)))
+  const days = Array.from({ length: numDays }, (_, i) => addDays(center, i - Math.floor(numDays / 2)))
   const weekMonth = center.getMonth()
 
   const matchesFilter = useCallback(
@@ -166,7 +260,32 @@ function App() {
     [tasks, matchesFilter],
   )
 
+  const openByIso = useMemo(() => {
+    const m: Record<string, Task[]> = {}
+    for (const t of tasks) {
+      if (t.done || !matchesFilter(t)) continue
+      const arr = m[t.date]
+      if (arr) arr.push(t)
+      else m[t.date] = [t]
+    }
+    for (const k of Object.keys(m)) m[k].sort((a, b) => a.order - b.order)
+    return m
+  }, [tasks, matchesFilter])
+
+  const doneByIso = useMemo(() => {
+    const m: Record<string, Task[]> = {}
+    for (const t of tasks) {
+      if (!t.done || !matchesFilter(t)) continue
+      const arr = m[t.date]
+      if (arr) arr.push(t)
+      else m[t.date] = [t]
+    }
+    for (const k of Object.keys(m)) m[k].sort((a, b) => (b.completedAt ?? '').localeCompare(a.completedAt ?? ''))
+    return m
+  }, [tasks, matchesFilter])
+
   useEffect(() => {
+    if (view !== 'week') return
     const onKey = (e: KeyboardEvent) => {
       const target = e.target as HTMLElement
       if (target.closest('input, textarea, [contenteditable="true"]')) return
@@ -178,7 +297,7 @@ function App() {
       let taskId = nav.taskId
 
       if (e.key === 'ArrowLeft') day = Math.max(0, day - 1)
-      else if (e.key === 'ArrowRight') day = Math.min(WEEK - 1, day + 1)
+      else if (e.key === 'ArrowRight') day = Math.min(numDays - 1, day + 1)
       else if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
         const list = openTasksOf(toISODate(days[day]))
         const idx = list.findIndex((x) => x.id === taskId)
@@ -201,7 +320,7 @@ function App() {
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [nav, days, openTasksOf])
+  }, [nav, days, openTasksOf, view, numDays])
 
   useEffect(() => {
     const w = weekNode
@@ -435,6 +554,94 @@ function App() {
     [tasks],
   )
 
+  const collectTaskTree = useCallback(
+    (id: string) => {
+      const byParent = new Map<string, string[]>()
+      for (const t of tasks) {
+        const p = t.parentId ?? ''
+        if (!p) continue
+        const arr = byParent.get(p) ?? []
+        arr.push(t.id)
+        byParent.set(p, arr)
+      }
+      const ids = new Set([id])
+      const stack = [id]
+      while (stack.length > 0) {
+        const cur = stack.pop()!
+        for (const c of byParent.get(cur) ?? []) {
+          if (!ids.has(c)) {
+            ids.add(c)
+            stack.push(c)
+          }
+        }
+      }
+      return ids
+    },
+    [tasks],
+  )
+
+  const handleDeleteTree = useCallback(
+    async (id: string) => {
+      const ids = collectTaskTree(id)
+      setTasks((prev) => prev.filter((t) => !ids.has(t.id)))
+      setLinks((prev) => prev.filter((l) => !ids.has(l.from) && !ids.has(l.to)))
+      try {
+        await deleteTask(id)
+      } catch (e) {
+        setError(String(e))
+      }
+    },
+    [collectTaskTree],
+  )
+
+  const handleGanttCreate = useCallback(
+    async (text: string, start: string, end: string, parentId: string | null, progress: number): Promise<Task> => {
+      try {
+        const task = await createTask(text, start, { startDate: start, endDate: end, parentId, progress })
+        setTasks((prev) => [...prev, task])
+        return task
+      } catch (e) {
+        setError(String(e))
+        throw e
+      }
+    },
+    [],
+  )
+
+  const handleGanttUpdate = useCallback(
+    (id: string, patch: Partial<Pick<Task, 'text' | 'startDate' | 'endDate' | 'progress' | 'parentId'>>) => {
+      setTasks((prev) => prev.map((t) => (t.id === id ? { ...t, ...patch } : t)))
+      void updateTask(id, patch).catch((e) => setError(String(e)))
+    },
+    [],
+  )
+
+  const handleGanttBatch = useCallback(
+    async (items: BatchUpdate[]) => {
+      const byId = new Map(items.map((i) => [i.id, i]))
+      setTasks((prev) =>
+        prev.map((t) => {
+          const u = byId.get(t.id)
+          if (!u) return t
+          return {
+            ...t,
+            ...(u.date !== undefined ? { date: u.date } : {}),
+            ...(u.order !== undefined ? { order: u.order } : {}),
+            ...(u.startDate !== undefined ? { startDate: u.startDate } : {}),
+            ...(u.endDate !== undefined ? { endDate: u.endDate } : {}),
+            ...(u.progress !== undefined ? { progress: u.progress } : {}),
+          }
+        }),
+      )
+      try {
+        await batchUpdate(items)
+      } catch (e) {
+        setError(String(e))
+      }
+    },
+    [],
+  )
+
   const handleEditorSave = (task: Task, html: string, openNew: boolean) => {
     setEditingId(null)
     void handleEdit(task.id, html)
@@ -446,9 +653,16 @@ function App() {
 
   const goToday = () => setCenterIso(toISODate(new Date()))
 
-  const goPrev = () => setCenterIso(toISODate(addDays(center, -WEEK)))
-  const goNext = () => setCenterIso(toISODate(addDays(center, WEEK)))
+  const goPrev = () => setCenterIso(toISODate(addDays(center, -numDays)))
+  const goNext = () => setCenterIso(toISODate(addDays(center, numDays)))
   const handlePickDate = (iso: string) => setCenterIso(iso)
+
+  const handleNumDays = (n: number) => {
+    setNumDays(n)
+    setColWidths(loadWidths(n))
+    setNav({ day: -1, taskId: null })
+    setSelectedSet(new Set())
+  }
 
   const handleResize = (index: number, width: number) => {
     setColWidths((prev) => prev.map((w, i) => (i === index ? Math.min(MAX_WIDTH, Math.max(MIN_WIDTH, width)) : w)))
@@ -544,6 +758,61 @@ function App() {
   }, [])
 
   const clearSelection = useCallback(() => setSelectedSet(new Set()), [])
+
+  const marqueeContainer = view === 'week' ? weekNode : view === 'rows' ? rowsNode : view === 'list' ? listNode : null
+  const marquee = useMarqueeSelect(
+    marqueeContainer,
+    useCallback((ids: string[]) => setSelectedSet(new Set(ids)), []),
+  )
+
+  const copySelection = useCallback(async () => {
+    const ids = [...selectedSet]
+    if (ids.length === 0) return
+    const selected = ids.map((id) => tasks.find((t) => t.id === id)).filter((t): t is Task => !!t)
+    if (selected.length === 0) return
+    const byDate = new Map<string, Task[]>()
+    for (const t of selected) {
+      const arr = byDate.get(t.date)
+      if (arr) arr.push(t)
+      else byDate.set(t.date, [t])
+    }
+    const lines: string[] = []
+    for (const [iso, list] of [...byDate.entries()].sort((a, b) => a[0].localeCompare(b[0]))) {
+      lines.push(formatDayHeader(new Date(`${iso}T12:00:00`)))
+      for (const t of list) lines.push(clipboardText(t.text))
+      lines.push('')
+    }
+    const text = lines.join('\n').trimEnd()
+    if (!text) return
+    try {
+      await navigator.clipboard.writeText(text)
+    } catch {
+      const ta = document.createElement('textarea')
+      ta.value = text
+      ta.style.position = 'fixed'
+      ta.style.opacity = '0'
+      document.body.appendChild(ta)
+      ta.select()
+      document.execCommand('copy')
+      ta.remove()
+    }
+  }, [selectedSet, tasks])
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const t = e.target as HTMLElement
+      if (t.closest('input, textarea, [contenteditable="true"]')) return
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'c') {
+        if (selectedSet.size === 0) return
+        e.preventDefault()
+        void copySelection()
+      } else if (e.key === 'Escape') {
+        if (selectedSet.size > 0) setSelectedSet(new Set())
+      }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [selectedSet, copySelection])
 
   const applyStyleToSelected = useCallback(
     (patch: (style: CardStyle | undefined) => CardStyle) => {
@@ -669,7 +938,7 @@ function App() {
   const cancelEdit = () => setEditingId(null)
 
   const navigateFromEditor = (dayIndex: number, delta: number) => {
-    const target = Math.min(WEEK - 1, Math.max(0, dayIndex + delta))
+    const target = Math.min(numDays - 1, Math.max(0, dayIndex + delta))
     const list = openTasksOf(toISODate(days[target]))
     setNav({ day: target, taskId: list[0]?.id ?? null })
   }
@@ -726,10 +995,21 @@ function App() {
       onToggleDoneSelected={() => void toggleDoneSelected()}
       onDeleteSelected={() => void deleteSelected()}
       onClearSelection={clearSelection}
+      onCopy={() => void copySelection()}
     />
   )
 
   const gridTemplateColumns = colWidths.map((w) => `${w}px`).join(' ')
+
+  const marqueeStyle =
+    marquee
+      ? {
+          left: marquee.w >= 0 ? marquee.x : marquee.x + marquee.w,
+          top: marquee.h >= 0 ? marquee.y : marquee.y + marquee.h,
+          width: Math.abs(marquee.w),
+          height: Math.abs(marquee.h),
+        }
+      : undefined
 
   return (
     <ArrowsProvider
@@ -757,12 +1037,29 @@ function App() {
             onNext={goNext}
             onToday={goToday}
             onPickDate={handlePickDate}
+            view={view}
+            onViewChange={setView}
+            numDays={numDays}
+            onNumDays={handleNumDays}
           />
 
           {loading && <div className="status">Загрузка…</div>}
           {!loading && error && <div className="status error">{error}</div>}
 
-          {!loading && (
+          {!loading && view === 'gantt' && (
+            <GanttView
+              tasks={tasks}
+              links={links}
+              onCreateTask={handleGanttCreate}
+              onUpdateTask={handleGanttUpdate}
+              onBatchUpdate={handleGanttBatch}
+              onDeleteTask={(id) => void handleDeleteTree(id)}
+              onCreateLink={handleCreateLink}
+              onDeleteLink={handleRemoveLink}
+            />
+          )}
+
+          {!loading && (view === 'week' || view === 'rows' || view === 'list') && (
             <>
               <FolderBar
                 folders={folders}
@@ -780,77 +1077,140 @@ function App() {
               onRename={handleRenameTag}
               onDelete={handleDeleteTag}
             />
-            <div className="week" style={{ gridTemplateColumns }} ref={setWeekNode}>
-              {days.map((day, idx) => {
-                const iso = toISODate(day)
-                return (
-                  <DayColumn
-                    key={iso}
-                    dayIndex={idx}
-                    date={day}
-                    tasks={openTasksOf(iso)}
-                    isToday={isToday(iso)}
-                    isPast={isPast(iso)}
-                    isWeekend={day.getDay() === 0 || day.getDay() === 6}
-                    isDimmed={day.getMonth() !== weekMonth}
-                    color={columnColors[iso] ?? null}
-                    selected={nav.day === idx}
-                    selectedTaskId={nav.day === idx ? nav.taskId : null}
-                    newRequest={newRequest}
-                    editingId={editingId}
-                    linkedSet={linkedSet}
-                    edgeSet={edgeSet}
-                    selectedSet={selectedSet}
-                    isDragTarget={cardDrag?.overIso === iso}
-                    onToggleSelect={toggleSelect}
-                    onCardPointerDown={handleCardPointerDown}
-                    onAdd={handleAdd}
-                    onToggle={handleToggle}
-                    onDelete={handleDelete}
-                    onCheckToggle={handleCheckToggle}
-                    onUpdateStyle={handleUpdateStyle}
-                    onDropTask={handleDropTask}
-                    allTags={tags}
-                    onUpdateTags={handleUpdateTags}
-                    folders={folders}
-                    onAssignFolder={handleAssignFolder}
-                    onFocusDay={(dayIdx, taskId) => setNav({ day: dayIdx, taskId })}
-                    onStartEdit={startEdit}
-                    onCancelEdit={cancelEdit}
-                    onEditorSave={handleEditorSave}
-                    onRegisterEditor={setEditorApi}
-                    onNavigateDay={navigateFromEditor}
-                    onResize={(w) => handleResize(idx, w)}
-                    onPickColor={(color) => handleColumnColor(iso, color)}
-                  />
-                )
-              })}
-              <ArrowsLayer />
-            </div>
-            <DoneArea
-              days={days}
-              tasks={doneTasks}
-              colWidths={colWidths}
-              doneRef={setDoneNode}
-              editingId={editingId}
-              linkedSet={linkedSet}
-              edgeSet={edgeSet}
-              selectedSet={selectedSet}
-              onToggleSelect={toggleSelect}
-              onCardPointerDown={handleCardPointerDown}
-              onStartEdit={startEdit}
-              onToggle={handleToggle}
-              onDelete={handleDelete}
-              onCheckToggle={handleCheckToggle}
-              onUpdateStyle={handleUpdateStyle}
-              allTags={tags}
-              onUpdateTags={handleUpdateTags}
-              folders={folders}
-              onAssignFolder={handleAssignFolder}
-              onEditorSave={handleEditorSave}
-              onCancelEdit={cancelEdit}
-              onRegisterEditor={setEditorApi}
-            />
+            {view === 'week' && (
+              <>
+                <div className="week" style={{ gridTemplateColumns }} ref={setWeekNode}>
+                  {days.map((day, idx) => {
+                    const iso = toISODate(day)
+                    return (
+                      <DayColumn
+                        key={iso}
+                        dayIndex={idx}
+                        date={day}
+                        tasks={openTasksOf(iso)}
+                        isToday={isToday(iso)}
+                        isPast={isPast(iso)}
+                        isWeekend={day.getDay() === 0 || day.getDay() === 6}
+                        isDimmed={day.getMonth() !== weekMonth}
+                        color={columnColors[iso] ?? null}
+                        selected={nav.day === idx}
+                        selectedTaskId={nav.day === idx ? nav.taskId : null}
+                        newRequest={newRequest}
+                        editingId={editingId}
+                        linkedSet={linkedSet}
+                        edgeSet={edgeSet}
+                        selectedSet={selectedSet}
+                        isDragTarget={cardDrag?.overIso === iso}
+                        onToggleSelect={toggleSelect}
+                        onCardPointerDown={handleCardPointerDown}
+                        onAdd={handleAdd}
+                        onToggle={handleToggle}
+                        onDelete={handleDelete}
+                        onCheckToggle={handleCheckToggle}
+                        onUpdateStyle={handleUpdateStyle}
+                        onDropTask={handleDropTask}
+                        allTags={tags}
+                        onUpdateTags={handleUpdateTags}
+                        folders={folders}
+                        onAssignFolder={handleAssignFolder}
+                        onFocusDay={(dayIdx, taskId) => setNav({ day: dayIdx, taskId })}
+                        onStartEdit={startEdit}
+                        onCancelEdit={cancelEdit}
+                        onEditorSave={handleEditorSave}
+                        onRegisterEditor={setEditorApi}
+                        onNavigateDay={navigateFromEditor}
+                        onResize={(w) => handleResize(idx, w)}
+                        onPickColor={(color) => handleColumnColor(iso, color)}
+                      />
+                    )
+                  })}
+                  <ArrowsLayer />
+                  {marquee && <div className="marquee" style={marqueeStyle} />}
+                </div>
+                <DoneArea
+                  days={days}
+                  tasks={doneTasks}
+                  colWidths={colWidths}
+                  doneRef={setDoneNode}
+                  editingId={editingId}
+                  linkedSet={linkedSet}
+                  edgeSet={edgeSet}
+                  selectedSet={selectedSet}
+                  onToggleSelect={toggleSelect}
+                  onCardPointerDown={handleCardPointerDown}
+                  onStartEdit={startEdit}
+                  onToggle={handleToggle}
+                  onDelete={handleDelete}
+                  onCheckToggle={handleCheckToggle}
+                  onUpdateStyle={handleUpdateStyle}
+                  allTags={tags}
+                  onUpdateTags={handleUpdateTags}
+                  folders={folders}
+                  onAssignFolder={handleAssignFolder}
+                  onEditorSave={handleEditorSave}
+                  onCancelEdit={cancelEdit}
+                  onRegisterEditor={setEditorApi}
+                />
+              </>
+            )}
+            {view === 'rows' && (
+              <RowsView
+                days={days}
+                openByIso={openByIso}
+                doneByIso={doneByIso}
+                colors={columnColors}
+                marquee={marquee}
+                newRequest={newRequest}
+                editingId={editingId}
+                linkedSet={linkedSet}
+                edgeSet={edgeSet}
+                selectedSet={selectedSet}
+                onToggleSelect={toggleSelect}
+                onCardPointerDown={handleCardPointerDown}
+                onAdd={handleAdd}
+                onToggle={handleToggle}
+                onDelete={handleDelete}
+                onCheckToggle={handleCheckToggle}
+                onUpdateStyle={handleUpdateStyle}
+                allTags={tags}
+                onUpdateTags={handleUpdateTags}
+                folders={folders}
+                onAssignFolder={handleAssignFolder}
+                onStartEdit={startEdit}
+                onCancelEdit={cancelEdit}
+                onEditorSave={handleEditorSave}
+                onRegisterEditor={setEditorApi}
+                onNavigateDay={navigateFromEditor}
+                containerRef={setRowsNode}
+              />
+            )}
+            {view === 'list' && (
+              <ListView
+                openByIso={openByIso}
+                doneByIso={doneByIso}
+                marquee={marquee}
+                editingId={editingId}
+                linkedSet={linkedSet}
+                edgeSet={edgeSet}
+                selectedSet={selectedSet}
+                onToggleSelect={toggleSelect}
+                onCardPointerDown={handleCardPointerDown}
+                onAdd={handleAdd}
+                onToggle={handleToggle}
+                onDelete={handleDelete}
+                onCheckToggle={handleCheckToggle}
+                onUpdateStyle={handleUpdateStyle}
+                allTags={tags}
+                onUpdateTags={handleUpdateTags}
+                folders={folders}
+                onAssignFolder={handleAssignFolder}
+                onStartEdit={startEdit}
+                onCancelEdit={cancelEdit}
+                onEditorSave={handleEditorSave}
+                onRegisterEditor={setEditorApi}
+                containerRef={setListNode}
+              />
+            )}
           </>
         )}
         </div>

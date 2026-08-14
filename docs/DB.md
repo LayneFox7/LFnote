@@ -41,6 +41,10 @@
 | folder_id | INT FK → folders (SET NULL) | при удалении папки заметки остаются |
 | text | TEXT | HTML |
 | date | TEXT | ISO `YYYY-MM-DD` |
+| start_date | TEXT | начало на диаграмме Ганта (NULL — как `date`) |
+| end_date | TEXT | конец на диаграмме Ганта (NULL — как `start_date`) |
+| parent_id | TEXT FK → tasks (CASCADE) | родительская задача (иерархия Ганта) |
+| progress | INTEGER | прогресс 0–100, по умолчанию 0 |
 | done | BOOLEAN | |
 | order_key | DOUBLE PRECISION | порядок в колонке дня |
 | style | JSONB | заливка/штриховка/шрифт |

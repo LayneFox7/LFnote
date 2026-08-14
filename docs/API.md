@@ -49,6 +49,8 @@
 ## Заметки (tasks)
 
 Поле `text` — HTML (санитизируется на клиенте). Поле `date` — ISO `YYYY-MM-DD`.
+Для диаграммы Ганта у задачи есть поля `startDate`, `endDate`, `parentId` (иерархия),
+`progress` (0–100). Если `startDate`/`endDate` отсутствуют, на Ганте задача занимает день `date`.
 
 ### GET /api/tasks — список
 
@@ -61,6 +63,10 @@
       "id": "b2e…",
       "text": "<p>Купить молоко</p>",
       "date": "2026-08-12",
+      "startDate": "2026-08-10",
+      "endDate": "2026-08-14",
+      "parentId": null,
+      "progress": 40,
       "done": false,
       "createdAt": "2026-08-10T18:00:00.000Z",
       "completedAt": null,
@@ -74,21 +80,27 @@
 ```
 
 `style` может быть `null`. `folderId` — `null`, если заметка не в папке.
+`startDate`/`endDate`/`parentId` могут быть `null`; `progress` — число 0–100.
 
 ### POST /api/tasks — создать
 
-Тело: `{"text", "date"}`. Ответ `201` — объект `task` как выше.
+Тело: `{"text", "date"}` + опционально `{"startDate", "endDate", "parentId", "progress", "folderId"}`.
+Ответ `201` — объект `task` как выше.
 
 ### PATCH /api/tasks/:id — изменить
 
-Тело — любое подмножество: `{"text", "date", "done", "order", "style", "folderId", "tags"}`.
+Тело — любое подмножество: `{"text", "date", "done", "order", "style", "folderId", "tags", "startDate", "endDate", "parentId", "progress"}`.
 - `folderId` — число (id папки пользователя) или `null` (убрать из папки).
 - `tags` — полный новый массив имён тегов; сервер синхронизирует связь `task_tags`.
+- `startDate`/`endDate` — ISO `YYYY-MM-DD` или `null` (сбросить на `date`).
+- `parentId` — id существующей задачи пользователя или `null` (сделать верхнеуровневой);
+  циклы иерархии запрещены (задача не может стать родителем своего потомка).
+- `progress` — целое 0–100.
 - Если заметка не принадлежит текущему пользователю — `404`.
 
 ### DELETE /api/tasks/:id — удалить
 
-`200 {"ok":true}`. Связанные `links` и `task_tags` удаляются каскадно (FK `ON DELETE CASCADE`).
+`200 {"ok":true}`. Связанные `links`, `task_tags` и подзадачи удаляются каскадно (FK `ON DELETE CASCADE`).
 
 ### POST /api/tasks/batch — массовое обновление
 
@@ -98,7 +110,8 @@
 {
   "tasks": [
     { "id": "a1", "date": "2026-08-13", "order": 1000 },
-    { "id": "b2", "folderId": 2 }
+    { "id": "b2", "folderId": 2 },
+    { "id": "c3", "startDate": "2026-08-20", "endDate": "2026-09-01", "progress": 50 }
   ]
 }
 ```

@@ -67,3 +67,66 @@ export function countCheckboxes(html: string): { total: number; checked: number 
   const inputs = Array.from(doc.querySelectorAll<HTMLInputElement>('input[type="checkbox"]'))
   return { total: inputs.length, checked: inputs.filter((i) => i.hasAttribute('checked') || i.checked).length }
 }
+
+const BLOCK_TAGS = new Set(['DIV', 'P'])
+
+export function splitHtmlLines(html: string): string[] {
+  const doc = new DOMParser().parseFromString(html, 'text/html')
+  const root = doc.body
+  const lines: string[] = []
+  let buf: Node[] = []
+
+  const flush = () => {
+    if (buf.length === 0) return
+    const wrap = doc.createElement('div')
+    for (const n of buf) wrap.appendChild(n)
+    const s = sanitize(wrap.innerHTML)
+    if (s) lines.push(s)
+    buf = []
+  }
+
+  const collect = (node: Node) => {
+    for (const child of Array.from(node.childNodes)) {
+      if (child.nodeType === Node.TEXT_NODE) {
+        const parts = (child.textContent ?? '').split('\n')
+        parts.forEach((part, i) => {
+          if (i > 0) flush()
+          if (part) buf.push(doc.createTextNode(part))
+        })
+        continue
+      }
+      if (child.nodeType !== Node.ELEMENT_NODE) continue
+      const el = child as Element
+      if (el.tagName === 'BR') {
+        flush()
+      } else if (el.tagName === 'UL' || el.tagName === 'OL') {
+        flush()
+        buf.push(el.cloneNode(true))
+        flush()
+      } else if (BLOCK_TAGS.has(el.tagName)) {
+        flush()
+        collect(el)
+        flush()
+      } else {
+        buf.push(el.cloneNode(true))
+      }
+    }
+  }
+
+  collect(root)
+  flush()
+  return lines
+}
+
+export function clipboardText(html: string): string {
+  const doc = new DOMParser().parseFromString(html, 'text/html')
+  for (const input of Array.from(doc.querySelectorAll<HTMLInputElement>('input[type="checkbox"]'))) {
+    input.insertAdjacentText('beforebegin', input.hasAttribute('checked') || input.checked ? '[x] ' : '[ ] ')
+    input.remove()
+  }
+  const lines = (doc.body.textContent ?? '')
+    .split('\n')
+    .map((l) => l.trim())
+    .filter(Boolean)
+  return lines.map((l) => `- ${l}`).join('\n')
+}

@@ -27,12 +27,21 @@ CREATE TABLE IF NOT EXISTS tasks (
   folder_id    INTEGER REFERENCES folders(id) ON DELETE SET NULL,
   text         TEXT NOT NULL DEFAULT '',
   date         TEXT NOT NULL,
+  start_date   TEXT,
+  end_date     TEXT,
+  parent_id    TEXT REFERENCES tasks(id) ON DELETE CASCADE,
+  progress     INTEGER NOT NULL DEFAULT 0,
   done         BOOLEAN NOT NULL DEFAULT false,
   order_key    DOUBLE PRECISION NOT NULL DEFAULT 1000,
   style        JSONB,
   created_at   TIMESTAMPTZ NOT NULL DEFAULT now(),
   completed_at TIMESTAMPTZ
 );
+
+ALTER TABLE tasks ADD COLUMN IF NOT EXISTS start_date TEXT;
+ALTER TABLE tasks ADD COLUMN IF NOT EXISTS end_date TEXT;
+ALTER TABLE tasks ADD COLUMN IF NOT EXISTS parent_id TEXT REFERENCES tasks(id) ON DELETE CASCADE;
+ALTER TABLE tasks ADD COLUMN IF NOT EXISTS progress INTEGER NOT NULL DEFAULT 0;
 
 CREATE TABLE IF NOT EXISTS links (
   id         TEXT PRIMARY KEY,
@@ -66,6 +75,7 @@ CREATE TABLE IF NOT EXISTS columns (
 CREATE INDEX IF NOT EXISTS idx_tasks_user ON tasks(user_id);
 CREATE INDEX IF NOT EXISTS idx_tasks_user_date ON tasks(user_id, date);
 CREATE INDEX IF NOT EXISTS idx_tasks_folder ON tasks(folder_id);
+CREATE INDEX IF NOT EXISTS idx_tasks_parent ON tasks(parent_id);
 CREATE INDEX IF NOT EXISTS idx_links_user ON links(user_id);
 CREATE INDEX IF NOT EXISTS idx_folders_user ON folders(user_id);
 CREATE INDEX IF NOT EXISTS idx_sessions_user ON sessions(user_id);

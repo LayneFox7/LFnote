@@ -38,6 +38,50 @@ const COOKIE_OPTS = {
 
 const today = () => new Date().toISOString().slice(0, 10)
 
+const DATE_RE = /^\d{4}-\d{2}-\d{2}$/
+
+async function assertValidParent(userId, taskId, parentId) {
+  if (parentId === null || parentId === undefined) return null
+  const pid = String(parentId)
+  if (pid === taskId) throw new Error('task cannot be its own parent')
+  const { rows } = await query(`SELECT parent_id FROM tasks WHERE id = $1 AND user_id = $2`, [pid, userId])
+  if (rows.length === 0) throw new Error('parent task not found')
+  let cur = rows[0].parent_id
+  const seen = new Set([pid])
+  while (cur) {
+    if (seen.has(cur)) throw new Error('task parent cycle detected')
+    if (cur === taskId) throw new Error('task cannot be moved under its own descendant')
+    seen.add(cur)
+    const r = await query(`SELECT parent_id FROM tasks WHERE id = $1 AND user_id = $2`, [cur, userId])
+    if (r.rows.length === 0) break
+    cur = r.rows[0].parent_id
+  }
+  return pid
+}
+
+const parseGanttDates = (body) => {
+  const { startDate, endDate } = body ?? {}
+  let s = null
+  let e = null
+  if (startDate !== undefined && startDate !== null) {
+    if (typeof startDate !== 'string' || !DATE_RE.test(startDate)) throw new Error('startDate must be YYYY-MM-DD')
+    s = startDate
+  }
+  if (endDate !== undefined && endDate !== null) {
+    if (typeof endDate !== 'string' || !DATE_RE.test(endDate)) throw new Error('endDate must be YYYY-MM-DD')
+    e = endDate
+  }
+  if (s && e && e < s) throw new Error('endDate must be >= startDate')
+  return { s, e }
+}
+
+const parseProgress = (value) => {
+  if (value === undefined || value === null) return 0
+  const n = Number(value)
+  if (!Number.isInteger(n) || n < 0 || n > 100) throw new Error('progress must be an integer 0..100')
+  return n
+}
+
 async function rollover(userId) {
   await query(`UPDATE tasks SET date = $1 WHERE user_id = $2 AND NOT done AND date < $1`, [today(), userId])
 }
@@ -167,7 +211,7 @@ app.get('/api/tasks', requireAuth, async (req, res) => {
 app.post('/api/tasks', requireAuth, async (req, res) => {
   const { text, date, folderId } = req.body ?? {}
   const value = typeof text === 'string' ? text.trim() : ''
-  if (!value || typeof date !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+  if (!value || typeof date !== 'string' || !DATE_RE.test(date)) {
     return res.status(400).json({ error: 'text and date (YYYY-MM-DD) required' })
   }
   let folderIdValue = null
@@ -176,10 +220,33 @@ app.post('/api/tasks', requireAuth, async (req, res) => {
     const f = await query(`SELECT id FROM folders WHERE id = $1 AND user_id = $2`, [folderIdValue, req.user.id])
     if (f.rows.length === 0) return res.status(400).json({ error: 'folder not found' })
   }
+  let startDateValue = null
+  let endDateValue = null
+  try {
+    const parsed = parseGanttDates(req.body)
+    startDateValue = parsed.s
+    endDateValue = parsed.e
+  } catch (e) {
+    return res.status(400).json({ error: e.message })
+  }
+  let progressValue = 0
+  try {
+    progressValue = parseProgress(req.body?.progress)
+  } catch (e) {
+    return res.status(400).json({ error: e.message })
+  }
+  let parentIdValue = null
+  if (req.body?.parentId !== undefined && req.body?.parentId !== null) {
+    try {
+      parentIdValue = await assertValidParent(req.user.id, null, req.body.parentId)
+    } catch (e) {
+      return res.status(400).json({ error: e.message })
+    }
+  }
   const { rows } = await query(
-    `INSERT INTO tasks (id, user_id, folder_id, text, date, order_key)
-     VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
-    [randomUUID(), req.user.id, folderIdValue, value, date, Date.now()],
+    `INSERT INTO tasks (id, user_id, folder_id, text, date, start_date, end_date, parent_id, progress, order_key)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING *`,
+    [randomUUID(), req.user.id, folderIdValue, value, date, startDateValue, endDateValue, parentIdValue, progressValue, Date.now()],
   )
   res.status(201).json({ task: rowToTask(rows[0]) })
 })
@@ -191,7 +258,7 @@ app.patch('/api/tasks/:id', requireAuth, async (req, res) => {
   const body = req.body ?? {}
 
   if (typeof body.text === 'string' && body.text.trim() && body.text.trim().length <= 10000) task.text = body.text.trim()
-  if (typeof body.date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(body.date)) task.date = body.date
+  if (typeof body.date === 'string' && DATE_RE.test(body.date)) task.date = body.date
   if (typeof body.done === 'boolean') {
     task.done = body.done
     task.completed_at = body.done ? new Date() : null
@@ -210,11 +277,39 @@ app.patch('/api/tasks/:id', requireAuth, async (req, res) => {
   if (body.style !== undefined && (body.style === null || (typeof body.style === 'object' && !Array.isArray(body.style)))) {
     task.style = body.style === null ? null : body.style
   }
+  if (body.startDate !== undefined || body.endDate !== undefined) {
+    try {
+      const parsed = parseGanttDates(body)
+      if (body.startDate !== undefined) task.start_date = parsed.s
+      if (body.endDate !== undefined) task.end_date = parsed.e
+    } catch (e) {
+      return res.status(400).json({ error: e.message })
+    }
+  }
+  if (body.progress !== undefined) {
+    try {
+      task.progress = parseProgress(body.progress)
+    } catch (e) {
+      return res.status(400).json({ error: e.message })
+    }
+  }
+  if (body.parentId !== undefined) {
+    if (body.parentId === null || body.parentId === '') {
+      task.parent_id = null
+    } else {
+      try {
+        task.parent_id = await assertValidParent(req.user.id, task.id, body.parentId)
+      } catch (e) {
+        return res.status(400).json({ error: e.message })
+      }
+    }
+  }
 
   await query(
-    `UPDATE tasks SET text = $1, date = $2, done = $3, completed_at = $4, order_key = $5, folder_id = $6, style = $7
-      WHERE id = $8 AND user_id = $9`,
-    [task.text, task.date, task.done, task.completed_at, task.order_key, task.folder_id, task.style, task.id, req.user.id],
+    `UPDATE tasks SET text = $1, date = $2, done = $3, completed_at = $4, order_key = $5, folder_id = $6, style = $7,
+            start_date = $8, end_date = $9, parent_id = $10, progress = $11
+      WHERE id = $12 AND user_id = $13`,
+    [task.text, task.date, task.done, task.completed_at, task.order_key, task.folder_id, task.style, task.start_date, task.end_date, task.parent_id, task.progress, task.id, req.user.id],
   )
 
   if (body.tags !== undefined) {
@@ -250,7 +345,7 @@ app.post('/api/tasks/batch', requireAuth, async (req, res) => {
     if (!it || typeof it.id !== 'string') continue
     const sets = []
     const params = [req.user.id, it.id]
-    if (typeof it.date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(it.date)) {
+    if (typeof it.date === 'string' && DATE_RE.test(it.date)) {
       params.push(it.date)
       sets.push(`date = $${params.length}`)
     }
@@ -269,6 +364,47 @@ app.post('/api/tasks/batch', requireAuth, async (req, res) => {
       }
       params.push(fid)
       sets.push(`folder_id = $${params.length}`)
+    }
+    if (it.startDate !== undefined || it.endDate !== undefined) {
+      let s = null
+      let e = null
+      try {
+        const parsed = parseGanttDates(it)
+        s = parsed.s
+        e = parsed.e
+      } catch (err) {
+        return res.status(400).json({ error: err.message })
+      }
+      if (it.startDate !== undefined) {
+        params.push(s)
+        sets.push(`start_date = $${params.length}`)
+      }
+      if (it.endDate !== undefined) {
+        params.push(e)
+        sets.push(`end_date = $${params.length}`)
+      }
+    }
+    if (it.progress !== undefined) {
+      let p
+      try {
+        p = parseProgress(it.progress)
+      } catch (err) {
+        return res.status(400).json({ error: err.message })
+      }
+      params.push(p)
+      sets.push(`progress = $${params.length}`)
+    }
+    if (it.parentId !== undefined) {
+      let pid = null
+      if (it.parentId !== null && it.parentId !== '') {
+        try {
+          pid = await assertValidParent(req.user.id, it.id, it.parentId)
+        } catch (err) {
+          return res.status(400).json({ error: err.message })
+        }
+      }
+      params.push(pid)
+      sets.push(`parent_id = $${params.length}`)
     }
     if (sets.length > 0) await query(`UPDATE tasks SET ${sets.join(', ')} WHERE user_id = $1 AND id = $2`, params)
   }

@@ -78,12 +78,20 @@ export async function fetchTasks(): Promise<Task[]> {
   return data.tasks
 }
 
-export async function createTask(text: string, date: string): Promise<Task> {
+export interface CreateTaskOptions {
+  startDate?: string
+  endDate?: string
+  parentId?: string | null
+  progress?: number
+  folderId?: number | null
+}
+
+export async function createTask(text: string, date: string, options?: CreateTaskOptions): Promise<Task> {
   const data = await json<{ task: Task }>(
     await authFetch(`${BASE}/tasks`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ text, date }),
+      body: JSON.stringify({ text, date, ...options }),
     }),
   )
   return data.task
@@ -111,6 +119,10 @@ export interface BatchUpdate {
   id: string
   date?: string
   order?: number
+  startDate?: string | null
+  endDate?: string | null
+  progress?: number
+  parentId?: string | null
 }
 
 export async function batchUpdate(tasks: BatchUpdate[]): Promise<void> {

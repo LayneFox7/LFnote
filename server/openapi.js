@@ -43,6 +43,10 @@ export const openapi = {
           id: { type: 'string' },
           text: { type: 'string', description: 'HTML/текст карточки' },
           date: { type: 'string', example: '2026-08-12' },
+          startDate: { type: 'string', nullable: true, description: 'Начало на диаграмме Ганта' },
+          endDate: { type: 'string', nullable: true, description: 'Конец на диаграмме Ганта' },
+          parentId: { type: 'string', nullable: true, description: 'Родительская задача (иерархия Ганта)' },
+          progress: { type: 'integer', minimum: 0, maximum: 100, description: 'Прогресс выполнения, %' },
           done: { type: 'boolean' },
           createdAt: { type: 'string', format: 'date-time' },
           completedAt: { type: 'string', format: 'date-time', nullable: true },
@@ -231,6 +235,10 @@ export const openapi = {
                   text: { type: 'string', example: 'Созвон с командой' },
                   date: { type: 'string', example: '2026-08-12' },
                   folderId: { type: 'integer', nullable: true },
+                  startDate: { type: 'string', nullable: true },
+                  endDate: { type: 'string', nullable: true },
+                  parentId: { type: 'string', nullable: true },
+                  progress: { type: 'integer', minimum: 0, maximum: 100 },
                 },
                 required: ['text', 'date'],
               },
@@ -247,7 +255,7 @@ export const openapi = {
       parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string' } }],
       patch: {
         tags: ['tasks'],
-        summary: 'Изменить карточку (текст, дата, done, order, style, tags, folderId)',
+        summary: 'Изменить карточку (текст, даты, done, order, style, tags, folderId, Гант)',
         requestBody: {
           required: true,
           content: {
@@ -262,6 +270,10 @@ export const openapi = {
                   style: { type: 'object', nullable: true },
                   tags: { type: 'array', items: { type: 'string' } },
                   folderId: { type: 'integer', nullable: true },
+                  startDate: { type: 'string', nullable: true },
+                  endDate: { type: 'string', nullable: true },
+                  parentId: { type: 'string', nullable: true },
+                  progress: { type: 'integer', minimum: 0, maximum: 100 },
                 },
               },
             },
@@ -285,7 +297,7 @@ export const openapi = {
     '/tasks/batch': {
       post: {
         tags: ['tasks'],
-        summary: 'Массовое обновление дат и порядка карточек',
+        summary: 'Массовое обновление дат, прогресса и иерархии задач',
         requestBody: {
           required: true,
           content: {
@@ -297,7 +309,15 @@ export const openapi = {
                     type: 'array',
                     items: {
                       type: 'object',
-                      properties: { id: { type: 'string' }, date: { type: 'string' }, order: { type: 'number' } },
+                      properties: {
+                        id: { type: 'string' },
+                        date: { type: 'string' },
+                        order: { type: 'number' },
+                        startDate: { type: 'string', nullable: true },
+                        endDate: { type: 'string', nullable: true },
+                        progress: { type: 'integer', minimum: 0, maximum: 100 },
+                        parentId: { type: 'string', nullable: true },
+                      },
                       required: ['id'],
                     },
                   },

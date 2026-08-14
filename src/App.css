@@ -1153,3 +1153,921 @@
   border: 1px solid var(--border);
   font-size: 12px;
 }
+
+/* ------------------------------- ВИД (НЕДЕЛЯ / ГАНТ) ------------------------------- */
+
+.view-toggle {
+  display: inline-flex;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+  margin-left: 6px;
+}
+
+.view-toggle button {
+  padding: 5px 14px;
+  font-size: 13px;
+  color: var(--text-muted);
+  background: var(--bg);
+  transition: background 0.12s, color 0.12s;
+}
+
+.view-toggle button + button {
+  border-left: 1px solid var(--border);
+}
+
+.view-toggle button.on {
+  background: var(--accent);
+  color: #fff;
+  font-weight: 600;
+}
+
+/* ----------------------------------- ГАНТ ----------------------------------- */
+
+body.gantt-dragging {
+  user-select: none;
+}
+
+.gantt {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.gantt-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-card);
+  flex: none;
+  flex-wrap: wrap;
+}
+
+.gantt-range {
+  font-size: 14px;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 6px;
+  transition: background 0.12s, color 0.12s;
+}
+
+.gantt-range:hover {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.gantt-scales {
+  display: inline-flex;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.gantt-scale {
+  padding: 4px 12px;
+  font-size: 12px;
+  color: var(--text-muted);
+  background: var(--bg);
+  transition: background 0.12s, color 0.12s;
+}
+
+.gantt-scale + .gantt-scale {
+  border-left: 1px solid var(--border);
+}
+
+.gantt-scale.on {
+  background: var(--accent);
+  color: #fff;
+  font-weight: 600;
+}
+
+.gantt-adds {
+  display: inline-flex;
+  gap: 4px;
+}
+
+.gantt-add {
+  padding: 4px 12px;
+  border: 1px solid var(--accent);
+  border-radius: 999px;
+  font-size: 12px;
+  color: var(--accent);
+  transition: background 0.12s, color 0.12s;
+}
+
+.gantt-add:hover {
+  background: var(--accent-soft);
+}
+
+.gantt-text-btn {
+  padding: 4px 8px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 12px;
+  color: var(--text-muted);
+  transition: background 0.12s, color 0.12s, border-color 0.12s;
+}
+
+.gantt-text-btn:hover {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+.gantt-empty {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+  padding: 20px;
+  text-align: center;
+}
+
+.gantt-scroll {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.gantt-head {
+  display: flex;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-card);
+  flex: none;
+}
+
+.gantt-left-head {
+  width: 400px;
+  flex: none;
+  display: grid;
+  grid-template-columns: minmax(130px, 1fr) 98px 98px 72px 52px;
+  border-right: 1px solid var(--border);
+  align-items: center;
+}
+
+.gantt-hcol {
+  padding: 0 6px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.gantt-hcol-actions {
+  text-align: right;
+}
+
+.gantt-right-head {
+  flex: 1;
+  overflow: hidden;
+  position: relative;
+}
+
+.gantt-head-inner {
+  position: relative;
+  will-change: transform;
+}
+
+.gantt-month-row {
+  position: relative;
+  height: 20px;
+  border-bottom: 1px solid var(--border);
+}
+
+.gantt-month-cell {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  padding-left: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted);
+  overflow: hidden;
+  white-space: nowrap;
+  border-right: 1px solid var(--border);
+}
+
+.gantt-unit-row {
+  position: relative;
+  height: 24px;
+}
+
+.gantt-unit-cell {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  color: var(--text-muted);
+  overflow: hidden;
+  white-space: nowrap;
+  border-right: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.gantt-bodywrap {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.gantt-left-body {
+  width: 400px;
+  flex: none;
+  position: relative;
+  overflow: hidden;
+  border-right: 1px solid var(--border);
+  background: var(--bg-card);
+}
+
+.gantt-rows {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  will-change: transform;
+}
+
+.gantt-row {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 36px;
+  display: grid;
+  grid-template-columns: minmax(130px, 1fr) 98px 98px 72px 52px;
+  align-items: center;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-card);
+}
+
+.gantt-row.project {
+  background: rgba(0, 0, 0, 0.03);
+}
+
+.gantt-row.project .gantt-name {
+  font-weight: 700;
+}
+
+.gantt-row.editing {
+  background: var(--accent-soft);
+}
+
+.gantt-cell {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  min-width: 0;
+  padding: 0 4px;
+}
+
+.gantt-cell-name {
+  overflow: hidden;
+}
+
+.gantt-toggle {
+  width: 18px;
+  height: 18px;
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  color: var(--text-muted);
+  font-size: 10px;
+  transition: transform 0.15s;
+}
+
+.gantt-toggle:hover {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.gantt-toggle.on {
+  transform: rotate(90deg);
+}
+
+.gantt-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13px;
+  cursor: default;
+}
+
+.gantt-name-input {
+  flex: 1;
+  min-width: 0;
+  padding: 2px 4px;
+  font-size: 13px;
+  border: 1px solid var(--accent);
+  border-radius: 5px;
+  outline: none;
+  background: var(--bg);
+  color: var(--text);
+}
+
+.gantt-date-input {
+  width: 100%;
+  min-width: 0;
+  padding: 3px 4px;
+  font-size: 12px;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  background: var(--bg);
+  color: var(--text);
+}
+
+.gantt-date-input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.gantt-cell-progress {
+  justify-content: center;
+}
+
+.gantt-step {
+  width: 18px;
+  height: 18px;
+  border-radius: 4px;
+  color: var(--text-muted);
+  font-size: 13px;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.gantt-step:hover {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.gantt-progress-val {
+  font-size: 11px;
+  color: var(--text-muted);
+  width: 30px;
+  text-align: center;
+}
+
+.gantt-cell-actions {
+  justify-content: flex-end;
+  gap: 0;
+}
+
+.gantt-row-btn {
+  width: 20px;
+  height: 20px;
+  border-radius: 4px;
+  font-size: 14px;
+  color: var(--text-muted);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.12s;
+}
+
+.gantt-row:hover .gantt-row-btn,
+.gantt-row.editing .gantt-row-btn {
+  opacity: 1;
+}
+
+.gantt-row-btn:hover {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.gantt-row-btn.danger:hover {
+  color: #d9534f;
+}
+
+.gantt-right-body {
+  flex: 1;
+  overflow: auto;
+  position: relative;
+  background: var(--bg-card);
+}
+
+.gantt-right-body::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+.gantt-right-body::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 5px;
+}
+
+.gantt-body {
+  position: relative;
+}
+
+.gantt-weekend {
+  position: absolute;
+  top: 0;
+  background: rgba(230, 126, 34, 0.06);
+  z-index: 0;
+  pointer-events: none;
+}
+
+.gantt-line {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  z-index: 1;
+  pointer-events: none;
+}
+
+.gantt-line.faint {
+  width: 1px;
+  background: rgba(0, 0, 0, 0.045);
+}
+
+.gantt-line.strong {
+  width: 1px;
+  background: var(--border);
+}
+
+.gantt-today-line {
+  position: absolute;
+  top: 0;
+  width: 1px;
+  background: var(--accent);
+  z-index: 2;
+  pointer-events: none;
+}
+
+.gantt-today-label {
+  position: absolute;
+  top: 2px;
+  left: 4px;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--accent);
+  background: rgba(255, 255, 255, 0.85);
+  padding: 1px 5px;
+  border-radius: 8px;
+  border: 1px solid rgba(217, 83, 79, 0.4);
+  white-space: nowrap;
+}
+
+.gantt-bar {
+  position: absolute;
+  border-radius: 4px;
+  cursor: grab;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  overflow: visible;
+  user-select: none;
+  touch-action: none;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.18);
+  transition: box-shadow 0.1s;
+}
+
+.gantt-bar:hover {
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.28);
+  z-index: 3;
+}
+
+.gantt-bar.dragging {
+  opacity: 0.85;
+  z-index: 10;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.3);
+}
+
+.gantt-bar.project {
+  border-radius: 3px;
+  cursor: move;
+}
+
+.gantt-bar.done {
+  opacity: 0.5;
+}
+
+.gantt-bar.dep-target {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.gantt-bar-progress {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.22);
+  border-radius: 4px 0 0 4px;
+  pointer-events: none;
+}
+
+.gantt-bar-label {
+  position: relative;
+  padding: 0 6px;
+  font-size: 11px;
+  line-height: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+  pointer-events: none;
+}
+
+.gantt-conn {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #fff;
+  border: 2px solid var(--accent);
+  opacity: 0;
+  cursor: crosshair;
+  z-index: 5;
+  transition: opacity 0.12s;
+}
+
+.gantt-conn-in {
+  left: -7px;
+}
+
+.gantt-conn-out {
+  right: -7px;
+}
+
+.gantt-bar:hover .gantt-conn {
+  opacity: 1;
+}
+
+.gantt-conn:hover {
+  transform: translateY(-50%) scale(1.25);
+}
+
+.gantt-resize {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 5px;
+  cursor: ew-resize;
+  z-index: 4;
+}
+
+.gantt-resize-l {
+  left: 0;
+}
+
+.gantt-resize-r {
+  right: 0;
+}
+
+.gantt-resize:hover {
+  background: rgba(255, 255, 255, 0.35);
+}
+
+.gantt-links {
+  position: absolute;
+  top: 0;
+  left: 0;
+  pointer-events: none;
+  z-index: 4;
+}
+
+.gantt-link {
+  pointer-events: stroke;
+  fill: none;
+  stroke: #9aa0a6;
+  stroke-width: 1.5;
+  cursor: pointer;
+}
+
+.gantt-link:hover {
+  stroke-width: 3;
+  stroke: #4f7cff;
+}
+
+.gantt-link.ghost {
+  pointer-events: none;
+  stroke-dasharray: 6 5;
+  stroke: #4f7cff;
+}
+
+.gantt-tooltip {
+  position: absolute;
+  z-index: 30;
+  background: var(--text);
+  color: #fff;
+  font-size: 11px;
+  padding: 3px 8px;
+  border-radius: 5px;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.gantt-dep-menu {
+  position: fixed;
+}
+
+/* ----------------------------------- ВЫДЕЛЕНИЕ МЫШЬЮ ----------------------------------- */
+
+body.marquee-active {
+  user-select: none;
+}
+
+.marquee {
+  position: absolute;
+  z-index: 30;
+  background: color-mix(in srgb, var(--accent) 15%, transparent);
+  border: 1px solid var(--accent);
+  border-radius: 4px;
+  pointer-events: none;
+}
+
+/* ----------------------------------- КОЛИЧЕСТВО ДНЕЙ ----------------------------------- */
+
+.numdays-toggle {
+  display: inline-flex;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+  margin-left: 2px;
+}
+
+.numdays-toggle button {
+  padding: 5px 11px;
+  font-size: 12px;
+  color: var(--text-muted);
+  background: var(--bg);
+  transition: background 0.12s, color 0.12s;
+}
+
+.numdays-toggle button + button {
+  border-left: 1px solid var(--border);
+}
+
+.numdays-toggle button:hover {
+  color: var(--accent);
+}
+
+.numdays-toggle button.on {
+  background: var(--accent);
+  color: #fff;
+  font-weight: 600;
+}
+
+/* ------------------------------- ВИД «ГОРИЗОНТ» (ДНИ ПОД ДНЯМИ) ------------------------------- */
+
+.rows-view {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  position: relative;
+  border-top: 1px solid var(--border);
+}
+
+.rows-day {
+  display: flex;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-card);
+}
+
+.rows-day.weekend {
+  background: rgba(230, 126, 34, 0.06);
+}
+
+.rows-day.today {
+  background: var(--accent-soft);
+}
+
+.rows-day.colored {
+  background: color-mix(in srgb, var(--col-color) 12%, transparent);
+}
+
+.rows-day-head {
+  flex: none;
+  width: 118px;
+  padding: 10px 8px;
+  border-right: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.rows-day-add {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 4px;
+  border-radius: 8px;
+  transition: background 0.15s;
+}
+
+.rows-day-add:hover {
+  background: rgba(0, 0, 0, 0.05);
+}
+
+.rows-day-num {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--text-muted);
+  transition: background 0.15s, color 0.15s;
+}
+
+.rows-day.today .rows-day-num {
+  background: var(--accent);
+  color: #fff;
+  font-weight: 600;
+}
+
+.rows-day-name {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+}
+
+.rows-day-month {
+  font-size: 11px;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.rows-day-open {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-content: flex-start;
+  gap: 6px;
+  padding: 10px;
+}
+
+.rows-day-open .task {
+  flex: 0 0 auto;
+  min-width: 150px;
+  max-width: 320px;
+}
+
+.rows-day-open .task-editor {
+  flex: 1 1 100%;
+  min-width: 200px;
+  max-width: 320px;
+}
+
+.rows-day-open .task-add {
+  align-self: center;
+}
+
+.rows-day-done {
+  flex: none;
+  width: 260px;
+  border-left: 1px solid var(--border);
+  background: var(--bg);
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  overflow-y: auto;
+}
+
+.rows-done-head {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  padding: 0 2px 4px;
+}
+
+.rows-done-empty {
+  font-size: 12px;
+  color: var(--text-muted);
+  padding: 2px;
+}
+
+/* ----------------------------------- ВИД «СПИСОК» (RUNNING LIST) ----------------------------------- */
+
+.running-list {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  position: relative;
+  padding: 14px 18px 28px;
+  max-width: 780px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.rl-section {
+  margin-bottom: 18px;
+}
+
+.rl-section-head {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  padding: 8px 2px 6px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 10px;
+}
+
+.rl-day {
+  margin-bottom: 12px;
+}
+
+.rl-day-head {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted);
+  padding: 2px 2px 4px;
+}
+
+.rl-empty {
+  color: var(--text-muted);
+  font-size: 13px;
+  padding: 6px 2px;
+}
+
+.rl-quickadd {
+  display: flex;
+  gap: 8px;
+  align-items: stretch;
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--bg-card);
+  margin-bottom: 20px;
+}
+
+.rl-input {
+  flex: 1;
+  min-width: 0;
+  font: inherit;
+  font-size: 14px;
+  line-height: 1.45;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg);
+  color: var(--text);
+  resize: none;
+  outline: none;
+}
+
+.rl-input:focus {
+  border-color: var(--accent);
+}
+
+.rl-date {
+  flex: none;
+  padding: 7px 8px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg);
+  color: var(--text);
+  font-size: 13px;
+  outline: none;
+}
+
+.rl-date:focus {
+  border-color: var(--accent);
+}
+
+.rl-add-btn {
+  flex: none;
+  width: 42px;
+  border-radius: 8px;
+  background: var(--accent);
+  color: #fff;
+  font-size: 18px;
+  transition: opacity 0.12s;
+}
+
+.rl-add-btn:hover {
+  opacity: 0.9;
+}
