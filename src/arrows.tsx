@@ -295,19 +295,51 @@ function chooseLane(p1: Pt, p2: Pt, obstacles: Rect[]): number {
   return best
 }
 
-function orthoD(p1: Pt, p2: Pt, laneY: number, r: number): string {
+function orthoH(p1: Pt, p2: Pt, laneY: number, r: number, stub = 10): string {
   if (Math.abs(p1.x - p2.x) < 1) return `M ${p1.x} ${p1.y} L ${p2.x} ${p2.y}`
   if (Math.abs(p1.y - p2.y) < 1) return `M ${p1.x} ${p1.y} L ${p2.x} ${p2.y}`
+
   const h = p2.x >= p1.x ? 1 : -1
-  if (r <= 0) {
-    return `M ${p1.x} ${p1.y} L ${p1.x} ${laneY} L ${p2.x} ${laneY} L ${p2.x} ${p2.y}`
+  const s1 = Math.sign(laneY - p1.y) || 1
+  const s2 = Math.sign(p2.y - laneY) || 1
+
+  let sx1 = p1.x + h * stub
+  let sx2 = p2.x - h * stub
+  if ((h === 1 && sx1 >= sx2) || (h === -1 && sx1 <= sx2)) {
+    const mid = (p1.x + p2.x) / 2
+    sx1 = mid
+    sx2 = mid
   }
-  const s1 = Math.sign(laneY - p1.y)
-  const s2 = Math.sign(p2.y - laneY)
-  const rr = Math.max(2, Math.min(r, Math.abs(laneY - p1.y) / 2, Math.abs(p2.y - laneY) / 2))
-  const sw1 = s1 === h ? 1 : 0
-  const sw2 = h === s2 ? 1 : 0
-  return `M ${p1.x} ${p1.y} L ${p1.x} ${laneY - s1 * rr} A ${rr} ${rr} 0 0 ${sw1} ${p1.x + h * rr} ${laneY} L ${p2.x - h * rr} ${laneY} A ${rr} ${rr} 0 0 ${sw2} ${p2.x} ${laneY + s2 * rr} L ${p2.x} ${p2.y}`
+
+  if (r <= 0) {
+    return `M ${p1.x} ${p1.y} L ${sx1} ${p1.y} L ${sx1} ${laneY} L ${sx2} ${laneY} L ${sx2} ${p2.y} L ${p2.x} ${p2.y}`
+  }
+
+  const vDist1 = Math.abs(laneY - p1.y)
+  const vDist2 = Math.abs(p2.y - laneY)
+  const hMid = Math.abs(sx2 - sx1)
+  if (vDist1 < 4 || vDist2 < 4) {
+    return `M ${p1.x} ${p1.y} L ${sx1} ${p1.y} L ${sx1} ${laneY} L ${sx2} ${laneY} L ${sx2} ${p2.y} L ${p2.x} ${p2.y}`
+  }
+
+  const rr = Math.max(2, Math.min(r, vDist1 / 2, vDist2 / 2, hMid / 2, stub))
+  const sw1 = h === s1 ? 1 : 0
+  const sw2 = s1 === h ? 1 : 0
+  const sw3 = h === s2 ? 1 : 0
+  const sw4 = s2 === h ? 1 : 0
+
+  return [
+    `M ${p1.x} ${p1.y}`,
+    `L ${sx1 - h * rr} ${p1.y}`,
+    `A ${rr} ${rr} 0 0 ${sw1} ${sx1} ${p1.y + s1 * rr}`,
+    `L ${sx1} ${laneY - s1 * rr}`,
+    `A ${rr} ${rr} 0 0 ${sw2} ${sx1 + h * rr} ${laneY}`,
+    `L ${sx2 - h * rr} ${laneY}`,
+    `A ${rr} ${rr} 0 0 ${sw3} ${sx2} ${laneY + s2 * rr}`,
+    `L ${sx2} ${p2.y - s2 * rr}`,
+    `A ${rr} ${rr} 0 0 ${sw4} ${sx2 + h * rr} ${p2.y}`,
+    `L ${p2.x} ${p2.y}`,
+  ].join(' ')
 }
 
 function hashSeed(s: string): number {
@@ -331,10 +363,21 @@ function mulberry32(a: number) {
 
 function sketchD(p1: Pt, p2: Pt, laneY: number, seedStr: string): string {
   const rand = mulberry32(hashSeed(seedStr))
+  const h = p2.x >= p1.x ? 1 : -1
+  const stub = 10
+  let sx1 = p1.x + h * stub
+  let sx2 = p2.x - h * stub
+  if ((h === 1 && sx1 >= sx2) || (h === -1 && sx1 <= sx2)) {
+    const mid = (p1.x + p2.x) / 2
+    sx1 = mid
+    sx2 = mid
+  }
   const corners: Pt[] = [
     p1,
-    { x: p1.x, y: laneY },
-    { x: p2.x, y: laneY },
+    { x: sx1, y: p1.y },
+    { x: sx1, y: laneY },
+    { x: sx2, y: laneY },
+    { x: sx2, y: p2.y },
     p2,
   ]
   const samples: Pt[] = []
@@ -363,9 +406,9 @@ export function buildArrowPath(p1: Pt, p2: Pt, style: ArrowStyle | undefined, ob
   const type = style?.type ?? 'routed'
   if (type === 'straight') return bezier(p1, p2)
   const lane = type === 'routed' || type === 'sketch' ? chooseLane(p1, p2, obstacles) : (p1.y + p2.y) / 2
-  if (type === 'elbow') return orthoD(p1, p2, lane, 0)
-  if (type === 'rounded') return orthoD(p1, p2, lane, 12)
-  if (type === 'routed') return orthoD(p1, p2, lane, 6)
+  if (type === 'elbow') return orthoH(p1, p2, lane, 0)
+  if (type === 'rounded') return orthoH(p1, p2, lane, 12)
+  if (type === 'routed') return orthoH(p1, p2, lane, 6)
   if (type === 'sketch') return sketchD(p1, p2, lane, `${p1.x}|${p1.y}|${p2.x}|${p2.y}`)
   return bezier(p1, p2)
 }
