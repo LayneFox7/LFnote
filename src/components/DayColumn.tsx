@@ -101,6 +101,8 @@ export function DayColumn({
 
   const iso = toISODate(date)
   const sorted = [...tasks].sort(SORT)
+  const openTasks = sorted.filter((t) => t.type !== 'note')
+  const openNotes = sorted.filter((t) => t.type === 'note')
   const doneSorted = [...doneTasks].sort(SORT)
 
   useEffect(() => {
@@ -258,7 +260,7 @@ export function DayColumn({
         onDragLeave={onDragLeave}
         onDrop={onDrop}
       >
-        {sorted.map(renderTask)}
+        {openTasks.map(renderTask)}
 
         {editing ? (
           <NewNoteEditor
@@ -282,8 +284,13 @@ export function DayColumn({
           </>
         )}
 
-        {spanNotes.length > 0 && (
+        {(openNotes.length > 0 || spanNotes.length > 0) && (
           <div className="span-notes">
+            {openNotes.map((note) => (
+              <div key={note.id} className="note-span solo" title={note.text}>
+                <span className="note-span-label">📝 {note.text}</span>
+              </div>
+            ))}
             {spanNotes.map((note) => {
               const isStart = note.startDate === iso
               const isEnd = note.endDate === iso

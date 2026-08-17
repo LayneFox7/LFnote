@@ -1,3 +1,4 @@
+import { useRef } from 'react'
 import { useRichEditor, type EditorApi } from '../editor'
 import { splitHtmlLines } from '../sanitize'
 
@@ -12,6 +13,7 @@ interface NewNoteEditorProps {
 
 export function NewNoteEditor({ onRegister, onCreate, onClose, onNavAdjacent, mode = 'task', onModeChange }: NewNoteEditorProps) {
   const { ref, getHtml, clear } = useRichEditor('', onRegister)
+  const switchingRef = useRef(false)
 
   const commitAll = () => {
     const lines = splitHtmlLines(getHtml())
@@ -25,6 +27,11 @@ export function NewNoteEditor({ onRegister, onCreate, onClose, onNavAdjacent, mo
   }
 
   const commitAndClose = () => {
+    if (switchingRef.current) {
+      switchingRef.current = false
+      onClose()
+      return
+    }
     commitAll()
     onClose()
   }
@@ -32,8 +39,16 @@ export function NewNoteEditor({ onRegister, onCreate, onClose, onNavAdjacent, mo
   return (
     <div className="task-editor">
       <div className="new-editor-toggle">
-        <button className={`toggle-btn${mode === 'task' ? ' on' : ''}`} onMouseDown={(e) => e.preventDefault()} onClick={() => onModeChange?.('task')}>Задача</button>
-        <button className={`toggle-btn${mode === 'note' ? ' on' : ''}`} onMouseDown={(e) => e.preventDefault()} onClick={() => onModeChange?.('note')}>Заметка</button>
+        <button
+          className={`toggle-btn${mode === 'task' ? ' on' : ''}`}
+          onMouseDown={(e) => { switchingRef.current = true; e.preventDefault() }}
+          onClick={() => onModeChange?.('task')}
+        >Задача</button>
+        <button
+          className={`toggle-btn${mode === 'note' ? ' on' : ''}`}
+          onMouseDown={(e) => { switchingRef.current = true; e.preventDefault() }}
+          onClick={() => onModeChange?.('note')}
+        >Заметка</button>
       </div>
       <div
         ref={ref}

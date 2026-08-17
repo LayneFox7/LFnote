@@ -187,6 +187,9 @@ export function ArrowsProvider({ weekNode, links, onCreate, onUpdate, onRemove, 
     [beginDrag],
   )
 
+  const openMenu = useCallback((linkId: string, x: number, y: number) => setMenu({ linkId, x, y }), [])
+  const closeMenu = useCallback(() => setMenu(null), [])
+
   const onArrowDown = useCallback(
     (link: Link, e: React.PointerEvent<SVGPathElement>) => {
       e.preventDefault()
@@ -208,13 +211,33 @@ export function ArrowsProvider({ weekNode, links, onCreate, onUpdate, onRemove, 
             Math.hypot(e.clientX - toView(pTo).x, e.clientY - toView(pTo).y)
             ? 'from'
             : 'to'
-      beginDrag({ kind: 'move', linkId: link.id, end, startX: 0, startY: 0 }, e.clientX, e.clientY)
-    },
-    [beginDrag, getRect, weekNode],
-  )
 
-  const openMenu = useCallback((linkId: string, x: number, y: number) => setMenu({ linkId, x, y }), [])
-  const closeMenu = useCallback(() => setMenu(null), [])
+      const sx = e.clientX
+      const sy = e.clientY
+      let activated = false
+
+      const onMove = (ev: MouseEvent) => {
+        if (activated) return
+        if (Math.hypot(ev.clientX - sx, ev.clientY - sy) < 5) return
+        activated = true
+        window.removeEventListener('mousemove', onMove)
+        window.removeEventListener('mouseup', onUp)
+        beginDrag({ kind: 'move', linkId: link.id, end, startX: sx, startY: sy }, sx, sy)
+      }
+
+      const onUp = (ev: MouseEvent) => {
+        window.removeEventListener('mousemove', onMove)
+        window.removeEventListener('mouseup', onUp)
+        if (!activated) {
+          openMenu(link.id, ev.clientX, ev.clientY)
+        }
+      }
+
+      window.addEventListener('mousemove', onMove)
+      window.addEventListener('mouseup', onUp)
+    },
+    [beginDrag, getRect, weekNode, openMenu],
+  )
 
   useEffect(() => {
     if (!menu) return
