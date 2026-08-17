@@ -180,6 +180,8 @@ export function ArrowsProvider({ weekNode, links, onCreate, onUpdate, onRemove, 
 
   const startConnection = useCallback(
     (from: string, side: 'left' | 'right', e: React.MouseEvent) => {
+      const el = document.elementFromPoint(e.clientX, e.clientY)
+      if (el && (el.classList.contains('arrow-hit') || el.closest('.arrow-hit'))) return
       e.preventDefault()
       e.stopPropagation()
       beginDrag({ kind: 'new', from, side, startX: 0, startY: 0 }, e.clientX, e.clientY)

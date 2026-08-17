@@ -15,10 +15,16 @@ export function NewNoteEditor({ onRegister, onCreate, onClose, onNavAdjacent, mo
   const { ref, getHtml, clear } = useRichEditor('', onRegister)
   const modeRef = useRef(mode)
   modeRef.current = mode
+  const onCloseRef = useRef(onClose)
+  onCloseRef.current = onClose
+  const onCreateRef = useRef(onCreate)
+  onCreateRef.current = onCreate
+  const getHtmlRef = useRef(getHtml)
+  getHtmlRef.current = getHtml
 
-  const commitAll = () => {
-    const lines = splitHtmlLines(getHtml())
-    for (const line of lines) void onCreate(line, modeRef.current)
+  const commitAll = (m?: 'task' | 'note') => {
+    const lines = splitHtmlLines(getHtmlRef.current())
+    for (const line of lines) void onCreateRef.current(line, m ?? modeRef.current)
     return lines.length
   }
 
@@ -29,7 +35,7 @@ export function NewNoteEditor({ onRegister, onCreate, onClose, onNavAdjacent, mo
 
   const commitAndClose = () => {
     commitAll()
-    onClose()
+    onCloseRef.current()
   }
 
   useEffect(() => {
@@ -37,14 +43,15 @@ export function NewNoteEditor({ onRegister, onCreate, onClose, onNavAdjacent, mo
       const target = e.target as HTMLElement
       if (ref.current?.contains(target)) return
       if (target.closest('.new-editor-toggle')) return
-      if (getHtml()) {
-        commitAll()
+      if (getHtmlRef.current()) {
+        const lines = splitHtmlLines(getHtmlRef.current())
+        for (const line of lines) void onCreateRef.current(line, modeRef.current)
       }
-      onClose()
+      onCloseRef.current()
     }
-    document.addEventListener('mousedown', onDown)
-    return () => document.removeEventListener('mousedown', onDown)
-  }, [getHtml, onClose])
+    document.addEventListener('mousedown', onDown, true)
+    return () => document.removeEventListener('mousedown', onDown, true)
+  }, [])
 
   return (
     <div className="task-editor">
@@ -70,8 +77,8 @@ export function NewNoteEditor({ onRegister, onCreate, onClose, onNavAdjacent, mo
         onKeyDown={(e) => {
           if (e.key === 'Enter' && !e.shiftKey) {
             e.preventDefault()
-            if (getHtml()) commitAndKeep()
-            else onClose()
+            if (getHtmlRef.current()) commitAndKeep()
+            else onCloseRef.current()
           } else if (e.key === 'Escape') {
             e.preventDefault()
             commitAndClose()
