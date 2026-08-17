@@ -11,6 +11,7 @@ interface FormatToolbarProps {
   onDeleteSelected?: () => void
   onClearSelection?: () => void
   onCopy?: () => void
+  disabled?: boolean
 }
 
 export function FormatToolbar({
@@ -22,29 +23,30 @@ export function FormatToolbar({
   onDeleteSelected,
   onClearSelection,
   onCopy,
+  disabled,
 }: FormatToolbarProps) {
   return (
     <div className="toolbar-top" onMouseDown={(e) => e.preventDefault()}>
-      <button className="toolbar-btn b" onClick={() => onCommand('bold')} title="Жирный (⌘B)">
+      <button className="toolbar-btn b" onClick={() => onCommand('bold')} title="Жирный (⌘B)" disabled={disabled}>
         B
       </button>
-      <button className="toolbar-btn i" onClick={() => onCommand('italic')} title="Курсив (⌘I)">
+      <button className="toolbar-btn i" onClick={() => onCommand('italic')} title="Курсив (⌘I)" disabled={disabled}>
         I
       </button>
-      <button className="toolbar-btn u" onClick={() => onCommand('underline')} title="Подчёркнутый (⌘U)">
+      <button className="toolbar-btn u" onClick={() => onCommand('underline')} title="Подчёркнутый (⌘U)" disabled={disabled}>
         U
       </button>
-      <button className="toolbar-btn s" onClick={() => onCommand('strikeThrough')} title="Зачёркнутый">
+      <button className="toolbar-btn s" onClick={() => onCommand('strikeThrough')} title="Зачёркнутый" disabled={disabled}>
         S
       </button>
       <span className="toolbar-sep" />
-      <button className="toolbar-btn" onClick={() => onCommand('insertUnorderedList')} title="Маркированный список">
+      <button className="toolbar-btn" onClick={() => onCommand('insertUnorderedList')} title="Маркированный список" disabled={disabled}>
         •≡
       </button>
-      <button className="toolbar-btn" onClick={() => onCommand('insertOrderedList')} title="Нумерованный список">
+      <button className="toolbar-btn" onClick={() => onCommand('insertOrderedList')} title="Нумерованный список" disabled={disabled}>
         1≡
       </button>
-      <button className="toolbar-btn" onClick={() => onCommand('checkbox')} title="Чекбокс">
+      <button className="toolbar-btn" onClick={() => onCommand('checkbox')} title="Чекбокс" disabled={disabled}>
         ☑
       </button>
       <span className="toolbar-sep" />
@@ -56,6 +58,7 @@ export function FormatToolbar({
           onClick={() => onCommand('foreColor', color)}
           title={color}
           aria-label={`Цвет ${color}`}
+          disabled={disabled}
         />
       ))}
       {selectionCount > 0 && (
@@ -65,10 +68,11 @@ export function FormatToolbar({
             {selectionCount} выбр.
           </span>
           <button
-            className={`toolbar-btn script${onApplyScript ? '' : ''}`}
+            className={`toolbar-btn script`}
             onClick={onApplyScript}
             title="Рукописный шрифт у выбранных"
             aria-pressed="false"
+            disabled={disabled}
           >
             Аа
           </button>
@@ -81,16 +85,17 @@ export function FormatToolbar({
                 onClick={() => onApplyFill?.(c)}
                 title={`Заливка выбранных ${c}`}
                 aria-label={`Заливка выбранных ${c}`}
+                disabled={disabled}
               />
             ))}
           </div>
-          <button className="toolbar-btn done" onClick={onToggleDoneSelected} title="Отметить выбранные выполненными">
+          <button className="toolbar-btn done" onClick={onToggleDoneSelected} title="Отметить выбранные выполненными" disabled={disabled}>
             ✓
           </button>
-          <button className="toolbar-btn" onClick={onCopy} title="Скопировать список выбранных (⌘C)">
+          <button className="toolbar-btn" onClick={onCopy} title="Скопировать список выбранных (⌘C)" disabled={disabled}>
             ⧉
           </button>
-          <button className="toolbar-btn del" onClick={onDeleteSelected} title="Удалить выбранные">
+          <button className="toolbar-btn del" onClick={onDeleteSelected} title="Удалить выбранные" disabled={disabled}>
             ×
           </button>
           <button className="toolbar-btn" onClick={onClearSelection} title="Снять выделение (Esc)">

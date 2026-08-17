@@ -51,46 +51,37 @@ export function WeekStrip({
   }, [calOpen])
 
   const showNav = view === 'week' || view === 'rows'
-  const showToolbar = view === 'week' || view === 'rows' || view === 'list'
   const showDays = view === 'week' || view === 'rows'
 
   return (
     <header className="topbar">
-      {showNav && (
-        <button className="nav-btn" onClick={onPrev} aria-label="Предыдущий период">
-          ‹
+      <button className="nav-btn" onClick={onPrev} aria-label="Предыдущий период" disabled={!showNav}>
+        ‹
+      </button>
+      <div className="week-label-wrap" ref={wrapRef}>
+        <button className="month-btn" onClick={() => showNav && setCalOpen((o) => !o)} title="Открыть календарь" disabled={!showNav}>
+          {formatWeekLabel(days)}
         </button>
-      )}
-      {showNav && (
-        <div className="week-label-wrap" ref={wrapRef}>
-          <button className="month-btn" onClick={() => setCalOpen((o) => !o)} title="Открыть календарь">
-            {formatWeekLabel(days)}
+        {calOpen && (
+          <CalendarPopup
+            center={centerDate}
+            onPick={(iso) => {
+              setCalOpen(false)
+              onPickDate(iso)
+            }}
+          />
+        )}
+      </div>
+      <button className="nav-btn" onClick={onNext} aria-label="Следующий период" disabled={!showNav}>
+        ›
+      </button>
+      <div className="numdays-toggle" role="group" aria-label="Сколько дней">
+        {[3, 5, 7].map((n) => (
+          <button key={n} className={numDays === n ? 'on' : ''} onClick={() => showDays && onNumDays?.(n)} title={`Показывать ${n} дней`} disabled={!showDays}>
+            {n}
           </button>
-          {calOpen && (
-            <CalendarPopup
-              center={centerDate}
-              onPick={(iso) => {
-                setCalOpen(false)
-                onPickDate(iso)
-              }}
-            />
-          )}
-        </div>
-      )}
-      {showNav && (
-        <button className="nav-btn" onClick={onNext} aria-label="Следующий период">
-          ›
-        </button>
-      )}
-      {showDays && (
-        <div className="numdays-toggle" role="group" aria-label="Сколько дней">
-          {[3, 5, 7].map((n) => (
-            <button key={n} className={numDays === n ? 'on' : ''} onClick={() => onNumDays?.(n)} title={`Показывать ${n} дней`}>
-              {n}
-            </button>
-          ))}
-        </div>
-      )}
+        ))}
+      </div>
       {onViewChange && (
         <div className="view-toggle" role="tablist" aria-label="Вид">
           <button role="tab" className={view === 'week' ? 'on' : ''} onClick={() => onViewChange('week')}>
@@ -107,19 +98,17 @@ export function WeekStrip({
           </button>
         </div>
       )}
-      {onFilterType && (view === 'week' || view === 'rows' || view === 'list') && (
+      {onFilterType && (
         <div className="filter-toggle" role="tablist" aria-label="Тип">
-          <button role="tab" className={filterType === 'all' ? 'on' : ''} onClick={() => onFilterType('all')}>Все</button>
-          <button role="tab" className={filterType === 'tasks' ? 'on' : ''} onClick={() => onFilterType('tasks')}>Задачи</button>
-          <button role="tab" className={filterType === 'notes' ? 'on' : ''} onClick={() => onFilterType('notes')}>Заметки</button>
+          <button role="tab" className={filterType === 'all' ? 'on' : ''} onClick={() => onFilterType('all')} disabled={view === 'gantt'}>Все</button>
+          <button role="tab" className={filterType === 'tasks' ? 'on' : ''} onClick={() => onFilterType('tasks')} disabled={view === 'gantt'}>Задачи</button>
+          <button role="tab" className={filterType === 'notes' ? 'on' : ''} onClick={() => onFilterType('notes')} disabled={view === 'gantt'}>Заметки</button>
         </div>
       )}
-      {showToolbar && toolbar}
-      {showNav && (
-        <button className="today-btn" onClick={onToday}>
-          Сегодня
-        </button>
-      )}
+      {toolbar}
+      <button className="today-btn" onClick={onToday} disabled={!showNav}>
+        Сегодня
+      </button>
       {userLogin && (
         <div className="user-chip" title="Аккаунт">
           <span className="user-login">{userLogin}</span>

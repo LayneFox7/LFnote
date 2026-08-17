@@ -983,6 +983,7 @@ function App() {
       onDeleteSelected={() => void deleteSelected()}
       onClearSelection={clearSelection}
       onCopy={() => void copySelection()}
+      disabled={view === 'gantt'}
     />
   )
 

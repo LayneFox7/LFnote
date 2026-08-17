@@ -1,4 +1,4 @@
-import { useRef } from 'react'
+import { useEffect, useRef } from 'react'
 import { useRichEditor, type EditorApi } from '../editor'
 import { splitHtmlLines } from '../sanitize'
 
@@ -13,18 +13,12 @@ interface NewNoteEditorProps {
 
 export function NewNoteEditor({ onRegister, onCreate, onClose, onNavAdjacent, mode = 'task', onModeChange }: NewNoteEditorProps) {
   const { ref, getHtml, clear } = useRichEditor('', onRegister)
-  const pendingBlur = useRef<number | null>(null)
-
-  const cancelPending = () => {
-    if (pendingBlur.current !== null) {
-      cancelAnimationFrame(pendingBlur.current)
-      pendingBlur.current = null
-    }
-  }
+  const modeRef = useRef(mode)
+  modeRef.current = mode
 
   const commitAll = () => {
     const lines = splitHtmlLines(getHtml())
-    for (const line of lines) void onCreate(line, mode)
+    for (const line of lines) void onCreate(line, modeRef.current)
     return lines.length
   }
 
@@ -34,26 +28,23 @@ export function NewNoteEditor({ onRegister, onCreate, onClose, onNavAdjacent, mo
   }
 
   const commitAndClose = () => {
-    cancelPending()
     commitAll()
     onClose()
   }
 
-  const handleBlur = () => {
-    cancelPending()
-    pendingBlur.current = requestAnimationFrame(() => {
-      pendingBlur.current = null
+  useEffect(() => {
+    const onDown = (e: MouseEvent) => {
+      const target = e.target as HTMLElement
+      if (ref.current?.contains(target)) return
+      if (target.closest('.new-editor-toggle')) return
       if (getHtml()) {
         commitAll()
       }
       onClose()
-    })
-  }
-
-  const handleToggle = (target: 'task' | 'note') => {
-    cancelPending()
-    onModeChange?.(target)
-  }
+    }
+    document.addEventListener('mousedown', onDown)
+    return () => document.removeEventListener('mousedown', onDown)
+  }, [getHtml, onClose])
 
   return (
     <div className="task-editor">
@@ -61,12 +52,12 @@ export function NewNoteEditor({ onRegister, onCreate, onClose, onNavAdjacent, mo
         <button
           className={`toggle-btn${mode === 'task' ? ' on' : ''}`}
           onMouseDown={(e) => e.preventDefault()}
-          onClick={() => handleToggle('task')}
+          onClick={() => onModeChange?.('task')}
         >Задача</button>
         <button
           className={`toggle-btn${mode === 'note' ? ' on' : ''}`}
           onMouseDown={(e) => e.preventDefault()}
-          onClick={() => handleToggle('note')}
+          onClick={() => onModeChange?.('note')}
         >Заметка</button>
       </div>
       <div
@@ -90,7 +81,6 @@ export function NewNoteEditor({ onRegister, onCreate, onClose, onNavAdjacent, mo
             onNavAdjacent(e.key === 'ArrowRight' ? 1 : -1)
           }
         }}
-        onBlur={handleBlur}
       />
     </div>
   )
