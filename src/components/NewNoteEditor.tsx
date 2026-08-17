@@ -43,7 +43,9 @@ export function NewNoteEditor({ onRegister, onCreate, onClose, onNavAdjacent, mo
     cancelPending()
     pendingBlur.current = requestAnimationFrame(() => {
       pendingBlur.current = null
-      commitAll()
+      if (getHtml()) {
+        commitAll()
+      }
       onClose()
     })
   }
