@@ -22,8 +22,8 @@ const TYPE_LABEL: Record<ArrowType, string> = {
 }
 
 type Drag =
-  | { kind: 'new'; from: string; side: 'left' | 'right' }
-  | { kind: 'move'; linkId: string; end: 'from' | 'to' }
+  | { kind: 'new'; from: string; side: 'left' | 'right'; startX: number; startY: number }
+  | { kind: 'move'; linkId: string; end: 'from' | 'to'; startX: number; startY: number }
 
 interface Rect {
   id: string
@@ -120,7 +120,16 @@ export function ArrowsProvider({ weekNode, links, onCreate, onUpdate, onRemove, 
     (clientX: number, clientY: number) => {
       const d = dragRef.current
       if (d) {
+        const moved = Math.hypot(clientX - d.startX, clientY - d.startY) < 5
+        if (!moved) {
+          setDrag(null)
+          setCursor(null)
+          return
+        }
+        const svgEl = weekNode?.querySelector('.arrows-svg') as HTMLElement | null
+        if (svgEl) svgEl.style.pointerEvents = 'none'
         const el = document.elementFromPoint(clientX, clientY)
+        if (svgEl) svgEl.style.pointerEvents = ''
         const cardEl = el?.closest?.('.task') as HTMLElement | null
         const toId = cardEl?.dataset.taskId
         if (d.kind === 'new') {
@@ -135,7 +144,7 @@ export function ArrowsProvider({ weekNode, links, onCreate, onUpdate, onRemove, 
       setDrag(null)
       setCursor(null)
     },
-    [onCreate, onUpdate],
+    [onCreate, onUpdate, weekNode],
   )
 
   const onMove = useCallback(
@@ -158,6 +167,8 @@ export function ArrowsProvider({ weekNode, links, onCreate, onUpdate, onRemove, 
     (d: Drag, clientX: number, clientY: number) => {
       window.removeEventListener('mousemove', onMove)
       window.removeEventListener('mouseup', onUp)
+      d.startX = clientX
+      d.startY = clientY
       dragRef.current = d
       setDrag(d)
       setCursor(toContent(clientX, clientY))
@@ -171,7 +182,7 @@ export function ArrowsProvider({ weekNode, links, onCreate, onUpdate, onRemove, 
     (from: string, side: 'left' | 'right', e: React.MouseEvent) => {
       e.preventDefault()
       e.stopPropagation()
-      beginDrag({ kind: 'new', from, side }, e.clientX, e.clientY)
+      beginDrag({ kind: 'new', from, side, startX: 0, startY: 0 }, e.clientX, e.clientY)
     },
     [beginDrag],
   )
@@ -197,7 +208,7 @@ export function ArrowsProvider({ weekNode, links, onCreate, onUpdate, onRemove, 
             Math.hypot(e.clientX - toView(pTo).x, e.clientY - toView(pTo).y)
             ? 'from'
             : 'to'
-      beginDrag({ kind: 'move', linkId: link.id, end }, e.clientX, e.clientY)
+      beginDrag({ kind: 'move', linkId: link.id, end, startX: 0, startY: 0 }, e.clientX, e.clientY)
     },
     [beginDrag, getRect, weekNode],
   )

@@ -32,8 +32,8 @@ export function NewNoteEditor({ onRegister, onCreate, onClose, onNavAdjacent, mo
   return (
     <div className="task-editor">
       <div className="new-editor-toggle">
-        <button className={`toggle-btn${mode === 'task' ? ' on' : ''}`} onClick={() => onModeChange?.('task')}>Задача</button>
-        <button className={`toggle-btn${mode === 'note' ? ' on' : ''}`} onClick={() => onModeChange?.('note')}>Заметка</button>
+        <button className={`toggle-btn${mode === 'task' ? ' on' : ''}`} onMouseDown={(e) => e.preventDefault()} onClick={() => onModeChange?.('task')}>Задача</button>
+        <button className={`toggle-btn${mode === 'note' ? ' on' : ''}`} onMouseDown={(e) => e.preventDefault()} onClick={() => onModeChange?.('note')}>Заметка</button>
       </div>
       <div
         ref={ref}
