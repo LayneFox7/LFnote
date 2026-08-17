@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import type { CardStyle, Folder, Link, Task, User, View } from './types'
+import type { CardStyle, Folder, FilterType, Link, Task, User, View } from './types'
 import {
   apiLogin,
   apiLogout,
@@ -157,6 +157,7 @@ function App() {
   const [activeTags, setActiveTags] = useState<string[]>([])
   const [folders, setFolders] = useState<Folder[]>([])
   const [selectedFolder, setSelectedFolder] = useState<number | null>(null)
+  const [filterType, setFilterType] = useState<FilterType>('all')
   const [user, setUser] = useState<User | null>(null)
   const [authChecked, setAuthChecked] = useState(false)
   const [loading, setLoading] = useState(true)
@@ -239,9 +240,11 @@ function App() {
   const matchesFilter = useCallback(
     (t: Task) => {
       const folderOk = selectedFolder === null || (t.folderId ?? null) === selectedFolder
-      return folderOk && (activeTags.length === 0 || activeTags.every((tg) => (t.tags ?? []).includes(tg)))
+      const type = t.type ?? 'task'
+      const typeOk = filterType === 'all' || (filterType === 'tasks' && type === 'task') || (filterType === 'notes' && type === 'note')
+      return folderOk && typeOk && (activeTags.length === 0 || activeTags.every((tg) => (t.tags ?? []).includes(tg)))
     },
-    [activeTags, selectedFolder],
+    [activeTags, selectedFolder, filterType],
   )
 
   const openTasksOf = useCallback(
@@ -273,6 +276,21 @@ function App() {
     for (const k of Object.keys(m)) m[k].sort((a, b) => (b.completedAt ?? '').localeCompare(a.completedAt ?? ''))
     return m
   }, [tasks, matchesFilter])
+
+  const multiDayNotes = useMemo(() => {
+    return tasks.filter((t) => t.type === 'note' && t.startDate && t.endDate && t.startDate !== t.endDate)
+  }, [tasks])
+
+  const spanNotesForDay = useCallback(
+    (iso: string) => {
+      return multiDayNotes.filter((t) => t.startDate! <= iso && t.endDate! >= iso).sort((a, b) => {
+        if (a.startDate !== b.startDate) return (a.startDate ?? '').localeCompare(b.startDate ?? '')
+        if (a.endDate !== b.endDate) return (a.endDate ?? '').localeCompare(b.endDate ?? '')
+        return a.order - b.order
+      })
+    },
+    [multiDayNotes],
+  )
 
   useEffect(() => {
     if (view !== 'week') return
@@ -399,9 +417,9 @@ function App() {
     }
   }, [])
 
-  const handleAdd = useCallback(async (text: string, date: Date) => {
+  const handleAdd = useCallback(async (text: string, date: Date, type?: 'task' | 'note') => {
     try {
-      const task = await createTask(text, toISODate(date))
+      const task = await createTask(text, toISODate(date), { type: type ?? 'task' })
       setTasks((prev) => [...prev, task])
     } catch (e) {
       setError(String(e))
@@ -1008,6 +1026,8 @@ function App() {
             onViewChange={setView}
             numDays={numDays}
             onNumDays={handleNumDays}
+            filterType={filterType}
+            onFilterType={setFilterType}
           />
 
           {loading && <div className="status">Загрузка…</div>}
@@ -1056,6 +1076,7 @@ function App() {
                         date={day}
                         tasks={openTasksOf(iso)}
                         doneTasks={doneByIso[iso] ?? []}
+                        spanNotes={spanNotesForDay(iso)}
                         isToday={isToday(iso)}
                         isPast={isPast(iso)}
                         isWeekend={day.getDay() === 0 || day.getDay() === 6}

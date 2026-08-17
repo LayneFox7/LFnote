@@ -12,6 +12,7 @@ interface DayColumnProps {
   date: Date
   tasks: Task[]
   doneTasks: Task[]
+  spanNotes?: Task[]
   isToday: boolean
   isPast: boolean
   isWeekend: boolean
@@ -28,7 +29,7 @@ interface DayColumnProps {
   isDragTarget: boolean
   onToggleSelect: (id: string) => void
   onCardPointerDown: (e: React.PointerEvent, task: Task) => void
-  onAdd: (text: string, date: Date) => Promise<void>
+  onAdd: (text: string, date: Date, type?: 'task' | 'note') => Promise<void>
   onToggle: (task: Task) => Promise<void>
   onDelete: (id: string) => Promise<void>
   onCheckToggle: (task: Task, index: number, checked: boolean) => Promise<void>
@@ -55,6 +56,7 @@ export function DayColumn({
   date,
   tasks,
   doneTasks,
+  spanNotes = [],
   isToday,
   isPast,
   isWeekend,
@@ -260,7 +262,7 @@ export function DayColumn({
         {editing ? (
           <NewNoteEditor
             onRegister={onRegisterEditor}
-            onCreate={(html) => onAdd(html, date)}
+            onCreate={(html, type) => onAdd(html, date, type)}
             onClose={() => setEditing(false)}
             onNavAdjacent={(delta) => onNavigateDay(dayIndex, delta)}
           />
@@ -275,6 +277,21 @@ export function DayColumn({
             <div className="done-sep" />
             {doneSorted.map(renderTask)}
           </>
+        )}
+
+        {spanNotes.length > 0 && (
+          <div className="span-notes">
+            {spanNotes.map((note) => {
+              const isStart = note.startDate === iso
+              const isEnd = note.endDate === iso
+              const cls = isStart && isEnd ? 'solo' : isStart ? 'first' : isEnd ? 'last' : 'middle'
+              return (
+                <div key={note.id} className={`note-span ${cls}`} title={isStart ? note.text : undefined}>
+                  {isStart && <span className="note-span-label">📝 {note.text}</span>}
+                </div>
+              )
+            })}
+          </div>
         )}
       </div>
 

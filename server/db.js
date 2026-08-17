@@ -59,6 +59,7 @@ export const rowToTask = (r) => ({
   id: r.id,
   text: r.text,
   date: r.date,
+  type: r.type ?? 'task',
   startDate: r.start_date ?? null,
   endDate: r.end_date ?? null,
   parentId: r.parent_id ?? null,

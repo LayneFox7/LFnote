@@ -1,7 +1,10 @@
+export type TaskType = 'task' | 'note'
+
 export interface Task {
   id: string
   text: string
   date: string
+  type?: TaskType
   startDate?: string | null
   endDate?: string | null
   parentId?: string | null
@@ -14,6 +17,8 @@ export interface Task {
   tags?: string[]
   folderId?: number | null
 }
+
+export type FilterType = 'all' | 'tasks' | 'notes'
 
 export type View = 'week' | 'rows' | 'list' | 'gantt'
 

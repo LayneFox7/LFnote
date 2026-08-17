@@ -26,7 +26,7 @@ interface RowsViewProps {
   selectedSet: Set<string>
   onToggleSelect: (id: string) => void
   onCardPointerDown: (e: React.PointerEvent, task: Task) => void
-  onAdd: (text: string, date: Date) => Promise<void>
+  onAdd: (text: string, date: Date, type?: 'task' | 'note') => Promise<void>
   onToggle: (task: Task) => Promise<void>
   onDelete: (id: string) => Promise<void>
   onCheckToggle: (task: Task, index: number, checked: boolean) => Promise<void>
@@ -146,7 +146,7 @@ export function RowsView({
               {editingDay === dayIndex ? (
                 <NewNoteEditor
                   onRegister={onRegisterEditor}
-                  onCreate={(html) => onAdd(html, day)}
+                  onCreate={(html, type) => onAdd(html, day, type)}
                   onClose={() => setEditingDay(null)}
                   onNavAdjacent={(delta) => onNavigateDay(dayIndex, delta)}
                 />

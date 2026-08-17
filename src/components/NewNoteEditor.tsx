@@ -1,19 +1,21 @@
+import { useState } from 'react'
 import { useRichEditor, type EditorApi } from '../editor'
 import { splitHtmlLines } from '../sanitize'
 
 interface NewNoteEditorProps {
   onRegister: (api: EditorApi | null) => void
-  onCreate: (html: string) => Promise<void>
+  onCreate: (html: string, type: 'task' | 'note') => Promise<void>
   onClose: () => void
   onNavAdjacent: (delta: number) => void
 }
 
 export function NewNoteEditor({ onRegister, onCreate, onClose, onNavAdjacent }: NewNoteEditorProps) {
+  const [mode, setMode] = useState<'task' | 'note'>('task')
   const { ref, getHtml, clear } = useRichEditor('', onRegister)
 
   const commitAll = () => {
     const lines = splitHtmlLines(getHtml())
-    for (const line of lines) void onCreate(line)
+    for (const line of lines) void onCreate(line, mode)
     return lines.length
   }
 
@@ -29,10 +31,14 @@ export function NewNoteEditor({ onRegister, onCreate, onClose, onNavAdjacent }: 
 
   return (
     <div className="task-editor">
+      <div className="new-editor-toggle">
+        <button className={`toggle-btn${mode === 'task' ? ' on' : ''}`} onClick={() => setMode('task')}>Задача</button>
+        <button className={`toggle-btn${mode === 'note' ? ' on' : ''}`} onClick={() => setMode('note')}>Заметка</button>
+      </div>
       <div
         ref={ref}
         className="task-editor-area new-note"
-        data-placeholder="Новая задача… (Enter — создать, Shift+Enter — новая строка)"
+        data-placeholder={mode === 'task' ? 'Новая задача… (Enter — создать, Shift+Enter — новая строка)' : 'Новая заметка… (Enter — создать, Shift+Enter — новая строка)'}
         contentEditable
         suppressContentEditableWarning
         spellCheck={false}

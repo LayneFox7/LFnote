@@ -209,11 +209,12 @@ app.get('/api/tasks', requireAuth, async (req, res) => {
 })
 
 app.post('/api/tasks', requireAuth, async (req, res) => {
-  const { text, date, folderId } = req.body ?? {}
+  const { text, date, folderId, type: rawType } = req.body ?? {}
   const value = typeof text === 'string' ? text.trim() : ''
   if (!value || typeof date !== 'string' || !DATE_RE.test(date)) {
     return res.status(400).json({ error: 'text and date (YYYY-MM-DD) required' })
   }
+  const typeValue = rawType === 'note' ? 'note' : 'task'
   let folderIdValue = null
   if (folderId !== undefined && folderId !== null) {
     folderIdValue = Number(folderId)
@@ -244,9 +245,9 @@ app.post('/api/tasks', requireAuth, async (req, res) => {
     }
   }
   const { rows } = await query(
-    `INSERT INTO tasks (id, user_id, folder_id, text, date, start_date, end_date, parent_id, progress, order_key)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING *`,
-    [randomUUID(), req.user.id, folderIdValue, value, date, startDateValue, endDateValue, parentIdValue, progressValue, Date.now()],
+    `INSERT INTO tasks (id, user_id, folder_id, text, date, start_date, end_date, parent_id, progress, order_key, type)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING *`,
+    [randomUUID(), req.user.id, folderIdValue, value, date, startDateValue, endDateValue, parentIdValue, progressValue, Date.now(), typeValue],
   )
   res.status(201).json({ task: rowToTask(rows[0]) })
 })
@@ -263,6 +264,7 @@ app.patch('/api/tasks/:id', requireAuth, async (req, res) => {
     task.done = body.done
     task.completed_at = body.done ? new Date() : null
   }
+  if (body.type === 'note' || body.type === 'task') task.type = body.type
   if (typeof body.order === 'number' && Number.isFinite(body.order)) task.order_key = body.order
   if (body.folderId !== undefined) {
     if (body.folderId === null || body.folderId === '') {
@@ -307,9 +309,9 @@ app.patch('/api/tasks/:id', requireAuth, async (req, res) => {
 
   await query(
     `UPDATE tasks SET text = $1, date = $2, done = $3, completed_at = $4, order_key = $5, folder_id = $6, style = $7,
-            start_date = $8, end_date = $9, parent_id = $10, progress = $11
-      WHERE id = $12 AND user_id = $13`,
-    [task.text, task.date, task.done, task.completed_at, task.order_key, task.folder_id, task.style, task.start_date, task.end_date, task.parent_id, task.progress, task.id, req.user.id],
+            start_date = $8, end_date = $9, parent_id = $10, progress = $11, type = $12
+      WHERE id = $13 AND user_id = $14`,
+    [task.text, task.date, task.done, task.completed_at, task.order_key, task.folder_id, task.style, task.start_date, task.end_date, task.parent_id, task.progress, task.type, task.id, req.user.id],
   )
 
   if (body.tags !== undefined) {

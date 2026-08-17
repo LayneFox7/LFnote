@@ -497,19 +497,27 @@ export function ArrowsLayer() {
             ...(s.dashed ? { strokeDasharray: '6 5' } : {}),
           }
           return (
-            <path
-              key={link.id}
-              className="arrow-line"
-              d={d}
-              style={style}
-              markerEnd={markerOf(s.color ?? ARROW_COLOR)}
-              onPointerDown={(e) => onArrowDown(link, e)}
-              onContextMenu={(e) => {
-                e.preventDefault()
-                e.stopPropagation()
-                openMenu(link.id, e.clientX, e.clientY)
-              }}
-            />
+            <g key={link.id}>
+              <path
+                className="arrow-hit"
+                d={d}
+                fill="none"
+                stroke="transparent"
+                strokeWidth={14}
+                onPointerDown={(e) => onArrowDown(link, e)}
+                onContextMenu={(e) => {
+                  e.preventDefault()
+                  e.stopPropagation()
+                  openMenu(link.id, e.clientX, e.clientY)
+                }}
+              />
+              <path
+                className="arrow-line"
+                d={d}
+                style={style}
+                markerEnd={markerOf(s.color ?? ARROW_COLOR)}
+              />
+            </g>
           )
         })}
         {ghost && (

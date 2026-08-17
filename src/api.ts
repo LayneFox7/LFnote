@@ -84,14 +84,16 @@ export interface CreateTaskOptions {
   parentId?: string | null
   progress?: number
   folderId?: number | null
+  type?: 'task' | 'note'
 }
 
 export async function createTask(text: string, date: string, options?: CreateTaskOptions): Promise<Task> {
+  const { type, ...rest } = options ?? {}
   const data = await json<{ task: Task }>(
     await authFetch(`${BASE}/tasks`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ text, date, ...options }),
+      body: JSON.stringify({ text, date, type: type ?? 'task', ...rest }),
     }),
   )
   return data.task

@@ -440,27 +440,149 @@
   top: 0;
   left: 0;
   pointer-events: none;
-  z-index: 4;
+  z-index: 8;
 }
 
 .arrow-line {
-  pointer-events: stroke;
+  pointer-events: none;
   fill: none;
   stroke: #4f7cff;
   stroke-width: 2;
   stroke-linecap: round;
-  cursor: grab;
   transition: stroke-width 0.1s;
-}
-
-.arrow-line:hover {
-  stroke-width: 3.5;
 }
 
 .arrow-line.ghost {
   pointer-events: none;
   stroke-dasharray: 6 5;
   opacity: 0.75;
+}
+
+.arrow-hit {
+  pointer-events: stroke;
+  cursor: grab;
+}
+
+.arrow-hit:hover + .arrow-line {
+  stroke-width: 3.5;
+}
+
+.task.note-card {
+  background: linear-gradient(135deg, rgba(241, 196, 15, 0.1), rgba(243, 156, 18, 0.08));
+  border-color: rgba(241, 196, 15, 0.35);
+}
+
+.task.note-card .task-text {
+  color: #7d6608;
+}
+
+.task-note-icon {
+  flex: none;
+  width: 16px;
+  height: 16px;
+  margin-top: 2px;
+  font-size: 14px;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.span-notes {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-top: 4px;
+}
+
+.note-span {
+  position: relative;
+  min-height: 28px;
+  background: rgba(241, 196, 15, 0.15);
+  border: 1px solid rgba(241, 196, 15, 0.3);
+  display: flex;
+  align-items: center;
+  padding: 4px 8px;
+}
+
+.note-span.first {
+  border-radius: 6px 6px 0 0;
+  margin-left: 0;
+  margin-right: 0;
+}
+
+.note-span.middle {
+  border-radius: 0;
+  margin-left: 0;
+  margin-right: 0;
+}
+
+.note-span.last {
+  border-radius: 0 0 6px 6px;
+  margin-left: 0;
+  margin-right: 0;
+}
+
+.note-span.solo {
+  border-radius: 6px;
+}
+
+.note-span-label {
+  font-size: 12px;
+  color: #7d6608;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
+}
+
+.new-editor-toggle {
+  display: flex;
+  border-bottom: 1px solid var(--border);
+}
+
+.toggle-btn {
+  flex: 1;
+  padding: 5px 0;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-muted);
+  transition: background 0.12s, color 0.12s;
+}
+
+.toggle-btn + .toggle-btn {
+  border-left: 1px solid var(--border);
+}
+
+.toggle-btn.on {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.filter-toggle {
+  display: inline-flex;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+  margin-left: 6px;
+}
+
+.filter-toggle button {
+  padding: 5px 12px;
+  font-size: 12px;
+  color: var(--text-muted);
+  background: var(--bg);
+  transition: background 0.12s, color 0.12s;
+}
+
+.filter-toggle button + button {
+  border-left: 1px solid var(--border);
+}
+
+.filter-toggle button.on {
+  background: var(--accent);
+  color: #fff;
+  font-weight: 600;
 }
 
 .arrow-menu,

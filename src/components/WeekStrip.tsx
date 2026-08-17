@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { formatWeekLabel } from '../date'
-import type { View } from '../types'
+import type { FilterType, View } from '../types'
 import { CalendarPopup } from './CalendarPopup'
 
 interface WeekStripProps {
@@ -17,6 +17,8 @@ interface WeekStripProps {
   onViewChange?: (view: View) => void
   numDays?: number
   onNumDays?: (n: number) => void
+  filterType?: FilterType
+  onFilterType?: (f: FilterType) => void
 }
 
 export function WeekStrip({
@@ -33,6 +35,8 @@ export function WeekStrip({
   onViewChange,
   numDays = 7,
   onNumDays,
+  filterType = 'all',
+  onFilterType,
 }: WeekStripProps) {
   const [calOpen, setCalOpen] = useState(false)
   const wrapRef = useRef<HTMLDivElement>(null)
@@ -101,6 +105,13 @@ export function WeekStrip({
           <button role="tab" className={view === 'gantt' ? 'on' : ''} onClick={() => onViewChange('gantt')}>
             Гант
           </button>
+        </div>
+      )}
+      {onFilterType && (view === 'week' || view === 'rows' || view === 'list') && (
+        <div className="filter-toggle" role="tablist" aria-label="Тип">
+          <button role="tab" className={filterType === 'all' ? 'on' : ''} onClick={() => onFilterType('all')}>Все</button>
+          <button role="tab" className={filterType === 'tasks' ? 'on' : ''} onClick={() => onFilterType('tasks')}>Задачи</button>
+          <button role="tab" className={filterType === 'notes' ? 'on' : ''} onClick={() => onFilterType('notes')}>Заметки</button>
         </div>
       )}
       {showToolbar && toolbar}

@@ -104,11 +104,13 @@ export function TaskRow({
     onPointerDown?.(e, task)
   }
 
+  const isNote = task.type === 'note'
+
   return (
     <div
       ref={rootRef}
       data-task-id={task.id}
-      className={`task${task.done ? ' done' : ''}${selected ? ' nav-selected' : ''}${linked ? ' linked' : ''}${edge ? ' edge' : ''}${style?.hatch ? ' hatch' : ''}${isScript ? ' script' : ''}`}
+      className={`task${task.done ? ' done' : ''}${selected ? ' nav-selected' : ''}${linked ? ' linked' : ''}${edge ? ' edge' : ''}${style?.hatch ? ' hatch' : ''}${isScript ? ' script' : ''}${isNote ? ' note-card' : ''}`}
       style={rootStyle}
       draggable={!task.done}
       onPointerDown={handlePointerDown}
@@ -127,12 +129,16 @@ export function TaskRow({
     >
       <div className="conn-handle left" onMouseDown={(e) => startConnection(task.id, 'left', e)} title="Соединить стрелкой" />
       <div className="conn-handle right" onMouseDown={(e) => startConnection(task.id, 'right', e)} title="Соединить стрелкой" />
-      <button
-        className={`task-check${task.done ? ' checked' : ''}`}
-        onClick={() => void onToggle(task)}
-        aria-label={task.done ? 'Вернуть в активные' : 'Отметить выполненной'}
-        title={task.done ? 'Вернуть в активные' : 'Отметить выполненной'}
-      />
+      {isNote ? (
+        <span className="task-note-icon" aria-hidden="true">📝</span>
+      ) : (
+        <button
+          className={`task-check${task.done ? ' checked' : ''}`}
+          onClick={() => void onToggle(task)}
+          aria-label={task.done ? 'Вернуть в активные' : 'Отметить выполненной'}
+          title={task.done ? 'Вернуть в активные' : 'Отметить выполненной'}
+        />
+      )}
       <div
         ref={textRef}
         className="task-text"
@@ -179,7 +185,7 @@ export function TaskRow({
           >
             Рукописный шрифт
           </button>
-          {task.done && (
+          {task.done && !isNote && (
             <button className="arrow-menu-btn reopen" onClick={() => void onToggle(task)}>
               ↺ Вернуть в активные
             </button>
