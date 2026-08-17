@@ -95,6 +95,7 @@ export function DayColumn({
   const [editing, setEditing] = useState(false)
   const [dragOver, setDragOver] = useState(false)
   const [colorOpen, setColorOpen] = useState(false)
+  const [editorMode, setEditorMode] = useState<'task' | 'note'>('task')
   const bodyRef = useRef<HTMLDivElement>(null)
   const resizeRef = useRef<{ startX: number; startW: number } | null>(null)
 
@@ -265,6 +266,8 @@ export function DayColumn({
             onCreate={(html, type) => onAdd(html, date, type)}
             onClose={() => setEditing(false)}
             onNavAdjacent={(delta) => onNavigateDay(dayIndex, delta)}
+            mode={editorMode}
+            onModeChange={setEditorMode}
           />
         ) : (
           <button className="task-add" onClick={startEditing}>

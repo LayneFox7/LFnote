@@ -73,6 +73,7 @@ export function RowsView({
   containerRef,
 }: RowsViewProps) {
   const [editingDay, setEditingDay] = useState<number | null>(null)
+  const [editorMode, setEditorMode] = useState<'task' | 'note'>('task')
 
   useEffect(() => {
     if (newRequest) setEditingDay(newRequest.dayIndex)
@@ -149,6 +150,8 @@ export function RowsView({
                   onCreate={(html, type) => onAdd(html, day, type)}
                   onClose={() => setEditingDay(null)}
                   onNavAdjacent={(delta) => onNavigateDay(dayIndex, delta)}
+                  mode={editorMode}
+                  onModeChange={setEditorMode}
                 />
               ) : (
                 <button className="task-add" onClick={() => setEditingDay(dayIndex)}>

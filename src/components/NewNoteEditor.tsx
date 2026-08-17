@@ -1,4 +1,3 @@
-import { useState } from 'react'
 import { useRichEditor, type EditorApi } from '../editor'
 import { splitHtmlLines } from '../sanitize'
 
@@ -7,10 +6,11 @@ interface NewNoteEditorProps {
   onCreate: (html: string, type: 'task' | 'note') => Promise<void>
   onClose: () => void
   onNavAdjacent: (delta: number) => void
+  mode?: 'task' | 'note'
+  onModeChange?: (mode: 'task' | 'note') => void
 }
 
-export function NewNoteEditor({ onRegister, onCreate, onClose, onNavAdjacent }: NewNoteEditorProps) {
-  const [mode, setMode] = useState<'task' | 'note'>('task')
+export function NewNoteEditor({ onRegister, onCreate, onClose, onNavAdjacent, mode = 'task', onModeChange }: NewNoteEditorProps) {
   const { ref, getHtml, clear } = useRichEditor('', onRegister)
 
   const commitAll = () => {
@@ -32,8 +32,8 @@ export function NewNoteEditor({ onRegister, onCreate, onClose, onNavAdjacent }: 
   return (
     <div className="task-editor">
       <div className="new-editor-toggle">
-        <button className={`toggle-btn${mode === 'task' ? ' on' : ''}`} onClick={() => setMode('task')}>Задача</button>
-        <button className={`toggle-btn${mode === 'note' ? ' on' : ''}`} onClick={() => setMode('note')}>Заметка</button>
+        <button className={`toggle-btn${mode === 'task' ? ' on' : ''}`} onClick={() => onModeChange?.('task')}>Задача</button>
+        <button className={`toggle-btn${mode === 'note' ? ' on' : ''}`} onClick={() => onModeChange?.('note')}>Заметка</button>
       </div>
       <div
         ref={ref}
