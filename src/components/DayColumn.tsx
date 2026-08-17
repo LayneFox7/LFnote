@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import type { CardStyle, Folder, Task } from '../types'
-import { toISODate } from '../date'
+import { toISODate, DAYS_SHORT_RU, MONTHS_RU } from '../date'
 import { TaskEditor } from './TaskEditor'
 import { NewNoteEditor } from './NewNoteEditor'
 import { TaskRow } from './TaskRow'
@@ -11,11 +11,13 @@ interface DayColumnProps {
   dayIndex: number
   date: Date
   tasks: Task[]
+  doneTasks: Task[]
   isToday: boolean
   isPast: boolean
   isWeekend: boolean
   isDimmed: boolean
   color: string | null
+  dayWidth: number
   selected: boolean
   selectedTaskId: string | null
   newRequest: { dayIndex: number; ts: number } | null
@@ -52,11 +54,13 @@ export function DayColumn({
   dayIndex,
   date,
   tasks,
+  doneTasks,
   isToday,
   isPast,
   isWeekend,
   isDimmed,
   color,
+  dayWidth,
   selected,
   selectedTaskId,
   newRequest,
@@ -94,6 +98,7 @@ export function DayColumn({
 
   const iso = toISODate(date)
   const sorted = [...tasks].sort(SORT)
+  const doneSorted = [...doneTasks].sort(SORT)
 
   useEffect(() => {
     if (newRequest && newRequest.dayIndex === dayIndex) setEditing(true)
@@ -202,12 +207,16 @@ export function DayColumn({
     <div
       className={`day${isToday ? ' today' : ''}${isPast ? ' past' : ''}${isWeekend ? ' weekend' : ''}${isDimmed ? ' dimmed' : ''}${selected ? ' selected' : ''}${color ? ' colored' : ''}${isDragTarget ? ' drag-target' : ''}`}
       data-date={iso}
-      style={color ? ({ ['--col-color' as string]: color } as React.CSSProperties) : undefined}
+      style={{ minWidth: dayWidth, ...((color ? { ['--col-color' as string]: color } : {}) as React.CSSProperties) }}
     >
       <div className="day-head">
         <button className="day-header" onClick={startEditing} aria-label="Добавить задачу">
           <span className="day-num">{date.getDate()}</span>
         </button>
+        <div className="day-head-info">
+          <span className="day-weekday">{DAYS_SHORT_RU[(date.getDay() + 6) % 7]}</span>
+          <span className="day-month">{MONTHS_RU[date.getMonth()].toLowerCase()}</span>
+        </div>
         <button
           className="day-color-btn"
           onClick={(e) => {
@@ -259,6 +268,13 @@ export function DayColumn({
           <button className="task-add" onClick={startEditing}>
             + Новая задача
           </button>
+        )}
+
+        {doneSorted.length > 0 && (
+          <>
+            <div className="done-sep" />
+            {doneSorted.map(renderTask)}
+          </>
         )}
       </div>
 

@@ -30,7 +30,6 @@ import {
 import { clipboardText, countCheckboxes, toggleCheckboxInHtml } from './sanitize'
 import { addDays, toISODate, isToday, isPast, formatDayHeader } from './date'
 import { DayColumn } from './components/DayColumn'
-import { DoneArea } from './components/DoneArea'
 import { GanttView } from './components/GanttView'
 import { ListView } from './components/ListView'
 import { RowsView } from './components/RowsView'
@@ -167,7 +166,6 @@ function App() {
   const [newRequest, setNewRequest] = useState<NewRequest | null>(null)
   const [editorApi, setEditorApi] = useState<EditorApi | null>(null)
   const [weekNode, setWeekNode] = useState<HTMLDivElement | null>(null)
-  const [doneNode, setDoneNode] = useState<HTMLDivElement | null>(null)
   const [rowsNode, setRowsNode] = useState<HTMLDivElement | null>(null)
   const [listNode, setListNode] = useState<HTMLDivElement | null>(null)
 
@@ -252,14 +250,6 @@ function App() {
     [tasks, matchesFilter],
   )
 
-  const doneTasks = useMemo(
-    () =>
-      tasks
-        .filter((t) => t.done && matchesFilter(t))
-        .sort((a, b) => (b.completedAt ?? '').localeCompare(a.completedAt ?? '')),
-    [tasks, matchesFilter],
-  )
-
   const openByIso = useMemo(() => {
     const m: Record<string, Task[]> = {}
     for (const t of tasks) {
@@ -324,38 +314,17 @@ function App() {
 
   useEffect(() => {
     const w = weekNode
-    const d = doneNode
-    if (!w || !d) return
+    if (!w) return
     const onWheel = (e: WheelEvent) => {
       if (!e.shiftKey) return
       e.preventDefault()
       const factor = e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? w.clientWidth : 1
       const delta = (e.deltaY || e.deltaX) * factor
       w.scrollLeft += delta
-      d.scrollLeft += delta
     }
-    const nodes = [w, d]
-    nodes.forEach((n) => n.addEventListener('wheel', onWheel, { passive: false }))
-    return () => nodes.forEach((n) => n.removeEventListener('wheel', onWheel))
-  }, [weekNode, doneNode])
-
-  useEffect(() => {
-    const w = weekNode
-    const d = doneNode
-    if (!w || !d) return
-    const syncW = () => {
-      d.scrollLeft = w.scrollLeft
-    }
-    const syncD = () => {
-      w.scrollLeft = d.scrollLeft
-    }
-    w.addEventListener('scroll', syncW)
-    d.addEventListener('scroll', syncD)
-    return () => {
-      w.removeEventListener('scroll', syncW)
-      d.removeEventListener('scroll', syncD)
-    }
-  }, [weekNode, doneNode])
+    w.addEventListener('wheel', onWheel, { passive: false })
+    return () => w.removeEventListener('wheel', onWheel)
+  }, [weekNode])
 
   const handleLogin = useCallback(
     async (login: string, password: string) => {
@@ -999,8 +968,6 @@ function App() {
     />
   )
 
-  const gridTemplateColumns = colWidths.map((w) => `${w}px`).join(' ')
-
   const marqueeStyle =
     marquee
       ? {
@@ -1079,7 +1046,7 @@ function App() {
             />
             {view === 'week' && (
               <>
-                <div className="week" style={{ gridTemplateColumns }} ref={setWeekNode}>
+                <div className="week" style={{ ['--day-count' as string]: numDays } as React.CSSProperties} ref={setWeekNode}>
                   {days.map((day, idx) => {
                     const iso = toISODate(day)
                     return (
@@ -1088,11 +1055,13 @@ function App() {
                         dayIndex={idx}
                         date={day}
                         tasks={openTasksOf(iso)}
+                        doneTasks={doneByIso[iso] ?? []}
                         isToday={isToday(iso)}
                         isPast={isPast(iso)}
                         isWeekend={day.getDay() === 0 || day.getDay() === 6}
                         isDimmed={day.getMonth() !== weekMonth}
                         color={columnColors[iso] ?? null}
+                        dayWidth={colWidths[idx]}
                         selected={nav.day === idx}
                         selectedTaskId={nav.day === idx ? nav.taskId : null}
                         newRequest={newRequest}
@@ -1127,30 +1096,6 @@ function App() {
                   <ArrowsLayer />
                   {marquee && <div className="marquee" style={marqueeStyle} />}
                 </div>
-                <DoneArea
-                  days={days}
-                  tasks={doneTasks}
-                  colWidths={colWidths}
-                  doneRef={setDoneNode}
-                  editingId={editingId}
-                  linkedSet={linkedSet}
-                  edgeSet={edgeSet}
-                  selectedSet={selectedSet}
-                  onToggleSelect={toggleSelect}
-                  onCardPointerDown={handleCardPointerDown}
-                  onStartEdit={startEdit}
-                  onToggle={handleToggle}
-                  onDelete={handleDelete}
-                  onCheckToggle={handleCheckToggle}
-                  onUpdateStyle={handleUpdateStyle}
-                  allTags={tags}
-                  onUpdateTags={handleUpdateTags}
-                  folders={folders}
-                  onAssignFolder={handleAssignFolder}
-                  onEditorSave={handleEditorSave}
-                  onCancelEdit={cancelEdit}
-                  onRegisterEditor={setEditorApi}
-                />
               </>
             )}
             {view === 'rows' && (

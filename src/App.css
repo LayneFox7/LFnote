@@ -72,7 +72,7 @@
   flex: 2;
   min-height: 0;
   display: grid;
-  grid-template-columns: repeat(7, minmax(190px, 1fr));
+  grid-template-columns: repeat(var(--day-count, 7), 1fr);
   overflow-x: auto;
   overflow-y: hidden;
 }
@@ -134,8 +134,28 @@
 }
 
 .day-header {
-  padding: 14px 0 10px;
+  padding: 14px 0 4px;
   text-align: center;
+}
+
+.day-head-info {
+  text-align: center;
+  padding-bottom: 6px;
+}
+
+.day-weekday {
+  display: block;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.day-month {
+  display: block;
+  font-size: 11px;
+  color: var(--text-muted);
 }
 
 .day-num {
@@ -236,7 +256,9 @@
   align-items: flex-start;
   gap: 6px;
   padding: 6px 8px;
+  border: 1px solid var(--border);
   border-radius: 8px;
+  background: var(--bg-card);
   user-select: none;
   transition: background 0.12s, box-shadow 0.12s;
 }
