@@ -13,7 +13,14 @@ interface NewNoteEditorProps {
 
 export function NewNoteEditor({ onRegister, onCreate, onClose, onNavAdjacent, mode = 'task', onModeChange }: NewNoteEditorProps) {
   const { ref, getHtml, clear } = useRichEditor('', onRegister)
-  const switchingRef = useRef(false)
+  const pendingBlur = useRef<number | null>(null)
+
+  const cancelPending = () => {
+    if (pendingBlur.current !== null) {
+      cancelAnimationFrame(pendingBlur.current)
+      pendingBlur.current = null
+    }
+  }
 
   const commitAll = () => {
     const lines = splitHtmlLines(getHtml())
@@ -27,13 +34,23 @@ export function NewNoteEditor({ onRegister, onCreate, onClose, onNavAdjacent, mo
   }
 
   const commitAndClose = () => {
-    if (switchingRef.current) {
-      switchingRef.current = false
-      onClose()
-      return
-    }
+    cancelPending()
     commitAll()
     onClose()
+  }
+
+  const handleBlur = () => {
+    cancelPending()
+    pendingBlur.current = requestAnimationFrame(() => {
+      pendingBlur.current = null
+      commitAll()
+      onClose()
+    })
+  }
+
+  const handleToggle = (target: 'task' | 'note') => {
+    cancelPending()
+    onModeChange?.(target)
   }
 
   return (
@@ -41,13 +58,13 @@ export function NewNoteEditor({ onRegister, onCreate, onClose, onNavAdjacent, mo
       <div className="new-editor-toggle">
         <button
           className={`toggle-btn${mode === 'task' ? ' on' : ''}`}
-          onMouseDown={(e) => { switchingRef.current = true; e.preventDefault() }}
-          onClick={() => onModeChange?.('task')}
+          onMouseDown={(e) => e.preventDefault()}
+          onClick={() => handleToggle('task')}
         >Задача</button>
         <button
           className={`toggle-btn${mode === 'note' ? ' on' : ''}`}
-          onMouseDown={(e) => { switchingRef.current = true; e.preventDefault() }}
-          onClick={() => onModeChange?.('note')}
+          onMouseDown={(e) => e.preventDefault()}
+          onClick={() => handleToggle('note')}
         >Заметка</button>
       </div>
       <div
@@ -64,14 +81,14 @@ export function NewNoteEditor({ onRegister, onCreate, onClose, onNavAdjacent, mo
             else onClose()
           } else if (e.key === 'Escape') {
             e.preventDefault()
-            onClose()
+            commitAndClose()
           } else if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
             e.preventDefault()
             commitAndClose()
             onNavAdjacent(e.key === 'ArrowRight' ? 1 : -1)
           }
         }}
-        onBlur={commitAndClose}
+        onBlur={handleBlur}
       />
     </div>
   )
