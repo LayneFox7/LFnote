@@ -23,8 +23,10 @@ export function NewNoteEditor({ onRegister, onCreate, onClose, onNavAdjacent, mo
   getHtmlRef.current = getHtml
 
   const commitAll = (m?: 'task' | 'note') => {
-    const lines = splitHtmlLines(getHtmlRef.current())
-    for (const line of lines) void onCreateRef.current(line, m ?? modeRef.current)
+    const html = getHtmlRef.current()
+    const mode = m ?? modeRef.current
+    const lines = splitHtmlLines(html)
+    for (const line of lines) void onCreateRef.current(line, mode)
     return lines.length
   }
 
@@ -43,14 +45,15 @@ export function NewNoteEditor({ onRegister, onCreate, onClose, onNavAdjacent, mo
       const target = e.target as HTMLElement
       if (ref.current?.contains(target)) return
       if (target.closest('.new-editor-toggle')) return
+      if (target.closest('button, input, textarea, a, .conn-handle, [contenteditable="true"]')) return
       if (getHtmlRef.current()) {
         const lines = splitHtmlLines(getHtmlRef.current())
         for (const line of lines) void onCreateRef.current(line, modeRef.current)
       }
       onCloseRef.current()
     }
-    document.addEventListener('mousedown', onDown, true)
-    return () => document.removeEventListener('mousedown', onDown, true)
+    document.addEventListener('mousedown', onDown)
+    return () => document.removeEventListener('mousedown', onDown)
   }, [])
 
   return (

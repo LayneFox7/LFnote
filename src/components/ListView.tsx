@@ -2,25 +2,16 @@ import { useState } from 'react'
 import type { CardStyle, Folder, Task } from '../types'
 import { formatDayHeader, toISODate } from '../date'
 import type { EditorApi } from '../editor'
+import { ArrowsLayer } from '../arrows'
 import { TaskEditor } from './TaskEditor'
 import { TaskRow } from './TaskRow'
-
-interface MarqueeRect {
-  x: number
-  y: number
-  w: number
-  h: number
-}
 
 interface ListViewProps {
   openByIso: Record<string, Task[]>
   doneByIso: Record<string, Task[]>
-  marquee?: MarqueeRect | null
   editingId: string | null
   linkedSet: Set<string>
   edgeSet: Set<string>
-  selectedSet: Set<string>
-  onToggleSelect: (id: string) => void
   onCardPointerDown: (e: React.PointerEvent, task: Task) => void
   onAdd: (text: string, date: Date) => Promise<void>
   onToggle: (task: Task) => Promise<void>
@@ -41,12 +32,9 @@ interface ListViewProps {
 export function ListView({
   openByIso,
   doneByIso,
-  marquee,
   editingId,
   linkedSet,
   edgeSet,
-  selectedSet,
-  onToggleSelect,
   onCardPointerDown,
   onAdd,
   onToggle,
@@ -67,9 +55,7 @@ export function ListView({
   const [dateIso, setDateIso] = useState(() => toISODate(new Date()))
 
   const openGroups = Object.keys(openByIso).sort()
-  const doneGroups = Object.keys(doneByIso)
-    .sort()
-    .reverse()
+  const doneGroups = Object.keys(doneByIso).sort().reverse()
 
   const commit = () => {
     const lines = text.split('\n').map((l) => l.trim()).filter(Boolean)
@@ -92,7 +78,6 @@ export function ListView({
       <TaskRow
         key={task.id}
         task={task}
-        selected={selectedSet.has(task.id)}
         linked={linkedSet.has(task.id)}
         edge={edgeSet.has(task.id)}
         onStartEdit={onStartEdit}
@@ -101,23 +86,12 @@ export function ListView({
         onCheckToggle={onCheckToggle}
         onUpdateStyle={onUpdateStyle}
         onPointerDown={onCardPointerDown}
-        onToggleSelect={onToggleSelect}
         allTags={allTags}
         onUpdateTags={onUpdateTags}
         folders={folders}
         onAssignFolder={onAssignFolder}
       />
     )
-
-  const marqueeStyle =
-    marquee
-      ? {
-          left: marquee.w >= 0 ? marquee.x : marquee.x + marquee.w,
-          top: marquee.h >= 0 ? marquee.y : marquee.y + marquee.h,
-          width: Math.abs(marquee.w),
-          height: Math.abs(marquee.h),
-        }
-      : undefined
 
   return (
     <div className="running-list" ref={containerRef}>
@@ -141,24 +115,11 @@ export function ListView({
           rows={1}
           value={text}
           onChange={(e) => setText(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter' && !e.shiftKey) {
-              e.preventDefault()
-              commit()
-            }
-          }}
+          onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); commit() } }}
           placeholder="Новая задача… (Enter — добавить, Shift+Enter — новая строка)"
         />
-        <input
-          type="date"
-          className="rl-date"
-          value={dateIso}
-          onChange={(e) => setDateIso(e.target.value || toISODate(new Date()))}
-          title="Дата задачи"
-        />
-        <button className="rl-add-btn" onClick={commit} title="Добавить">
-          +
-        </button>
+        <input type="date" className="rl-date" value={dateIso} onChange={(e) => setDateIso(e.target.value || toISODate(new Date()))} title="Дата задачи" />
+        <button className="rl-add-btn" onClick={commit} title="Добавить">+</button>
       </div>
 
       <div className="rl-section">
@@ -175,7 +136,7 @@ export function ListView({
         )}
       </div>
 
-      {marquee && <div className="marquee" style={marqueeStyle} />}
+      <ArrowsLayer />
     </div>
   )
 }

@@ -25,9 +25,7 @@ interface DayColumnProps {
   editingId: string | null
   linkedSet: Set<string>
   edgeSet: Set<string>
-  selectedSet: Set<string>
-  isDragTarget: boolean
-  onToggleSelect: (id: string) => void
+  dropIndex: number | null
   onCardPointerDown: (e: React.PointerEvent, task: Task) => void
   onAdd: (text: string, date: Date, type?: 'task' | 'note') => Promise<void>
   onToggle: (task: Task) => Promise<void>
@@ -69,9 +67,7 @@ export function DayColumn({
   editingId,
   linkedSet,
   edgeSet,
-  selectedSet,
-  isDragTarget,
-  onToggleSelect,
+  dropIndex,
   onCardPointerDown,
   onAdd,
   onToggle,
@@ -93,7 +89,6 @@ export function DayColumn({
   onPickColor,
 }: DayColumnProps) {
   const [editing, setEditing] = useState(false)
-  const [dragOver, setDragOver] = useState(false)
   const [colorOpen, setColorOpen] = useState(false)
   const [editorMode, setEditorMode] = useState<'task' | 'note'>('task')
   const bodyRef = useRef<HTMLDivElement>(null)
@@ -134,27 +129,17 @@ export function DayColumn({
   const onDragOver = (e: React.DragEvent) => {
     e.preventDefault()
     e.dataTransfer.dropEffect = 'move'
-    setDragOver(true)
-  }
-
-  const onDragLeave = (e: React.DragEvent) => {
-    if (!bodyRef.current?.contains(e.relatedTarget as Node)) setDragOver(false)
   }
 
   const onDrop = (e: React.DragEvent) => {
     e.preventDefault()
-    setDragOver(false)
     const taskId = e.dataTransfer.getData('text/plain')
     if (!taskId || !bodyRef.current) return
     const rows = Array.from(bodyRef.current.querySelectorAll<HTMLElement>('.task:not(.done)'))
     let index = rows.length
-    const y = e.clientY
     for (let i = 0; i < rows.length; i++) {
       const r = rows[i].getBoundingClientRect()
-      if (y < r.top + r.height / 2) {
-        index = i
-        break
-      }
+      if (e.clientY < r.top + r.height / 2) { index = i; break }
     }
     void onDropTask(taskId, iso, index)
   }
@@ -177,20 +162,13 @@ export function DayColumn({
     window.addEventListener('mouseup', onUp)
   }
 
-  const renderTask = (task: Task) =>
-    editingId === task.id ? (
-      <TaskEditor
-        key={task.id}
-        initialHtml={task.text}
-        onRegister={onRegisterEditor}
-        onSave={(html, openNew) => onEditorSave(task, html, openNew)}
-        onCancel={onCancelEdit}
-      />
-    ) : (
+  const renderTask = (task: Task, idx: number) => (
+    <>
+      {dropIndex === idx && <div className="drop-indicator" />}
       <TaskRow
         key={task.id}
         task={task}
-        selected={selectedSet.has(task.id) || (selected && selectedTaskId === task.id)}
+        selected={selected && selectedTaskId === task.id}
         linked={linkedSet.has(task.id)}
         edge={edgeSet.has(task.id)}
         onStartEdit={handleStartEdit}
@@ -200,17 +178,17 @@ export function DayColumn({
         onUpdateStyle={onUpdateStyle}
         onDragStart={onDragStart}
         onPointerDown={onCardPointerDown}
-        onToggleSelect={onToggleSelect}
         allTags={allTags}
         onUpdateTags={onUpdateTags}
         folders={folders}
         onAssignFolder={onAssignFolder}
       />
-    )
+    </>
+  )
 
   return (
     <div
-      className={`day${isToday ? ' today' : ''}${isPast ? ' past' : ''}${isWeekend ? ' weekend' : ''}${isDimmed ? ' dimmed' : ''}${selected ? ' selected' : ''}${color ? ' colored' : ''}${isDragTarget ? ' drag-target' : ''}`}
+      className={`day${isToday ? ' today' : ''}${isPast ? ' past' : ''}${isWeekend ? ' weekend' : ''}${isDimmed ? ' dimmed' : ''}${selected ? ' selected' : ''}${color ? ' colored' : ''}`}
       data-date={iso}
       style={{ minWidth: dayWidth, ...((color ? { ['--col-color' as string]: color } : {}) as React.CSSProperties) }}
     >
@@ -224,10 +202,7 @@ export function DayColumn({
         </div>
         <button
           className="day-color-btn"
-          onClick={(e) => {
-            e.stopPropagation()
-            setColorOpen((o) => !o)
-          }}
+          onClick={(e) => { e.stopPropagation(); setColorOpen((o) => !o) }}
           aria-label="Цвет колонки"
           title="Цвет колонки"
           style={color ? { background: color, borderColor: color } : undefined}
@@ -237,30 +212,17 @@ export function DayColumn({
             <div className="menu-label">Цвет колонки</div>
             <div className="menu-row">
               {ARROW_COLORS.map((c) => (
-                <button
-                  key={c}
-                  className={`menu-color${color === c ? ' on' : ''}`}
-                  style={{ background: c }}
-                  onClick={() => void onPickColor(c)}
-                  aria-label={`Цвет ${c}`}
-                />
+                <button key={c} className={`menu-color${color === c ? ' on' : ''}`} style={{ background: c }} onClick={() => void onPickColor(c)} aria-label={`Цвет ${c}`} />
               ))}
             </div>
-            <button className="arrow-menu-btn" onClick={() => void onPickColor(null)}>
-              Сбросить
-            </button>
+            <button className="arrow-menu-btn" onClick={() => void onPickColor(null)}>Сбросить</button>
           </div>
         )}
       </div>
 
-      <div
-        ref={bodyRef}
-        className={`day-body${dragOver ? ' drag-over' : ''}`}
-        onDragOver={onDragOver}
-        onDragLeave={onDragLeave}
-        onDrop={onDrop}
-      >
-        {openTasks.map(renderTask)}
+      <div ref={bodyRef} className="day-body" onDragOver={onDragOver} onDrop={onDrop}>
+        {dropIndex === 0 && openTasks.length === 0 && <div className="drop-indicator" />}
+        {openTasks.map((task, idx) => renderTask(task, idx))}
 
         {editing ? (
           <NewNoteEditor
@@ -272,15 +234,34 @@ export function DayColumn({
             onModeChange={setEditorMode}
           />
         ) : (
-          <button className="task-add" onClick={startEditing}>
-            + Новая задача
-          </button>
+          <button className="task-add" onClick={startEditing}>+ Новая задача</button>
         )}
+
+        {dropIndex != null && dropIndex >= openTasks.length && openTasks.length > 0 && <div className="drop-indicator" />}
 
         {doneSorted.length > 0 && (
           <>
             <div className="done-sep" />
-            {doneSorted.map(renderTask)}
+            {doneSorted.map((task) => (
+              <TaskRow
+                key={task.id}
+                task={task}
+                selected={selected && selectedTaskId === task.id}
+                linked={linkedSet.has(task.id)}
+                edge={edgeSet.has(task.id)}
+                onStartEdit={handleStartEdit}
+                onToggle={onToggle}
+                onDelete={onDelete}
+                onCheckToggle={onCheckToggle}
+                onUpdateStyle={onUpdateStyle}
+                onDragStart={onDragStart}
+                onPointerDown={onCardPointerDown}
+                allTags={allTags}
+                onUpdateTags={onUpdateTags}
+                folders={folders}
+                onAssignFolder={onAssignFolder}
+              />
+            ))}
           </>
         )}
 

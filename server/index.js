@@ -29,6 +29,21 @@ if (IS_PROD) app.set('trust proxy', 1)
 app.use(express.json())
 app.use(cookieParser())
 
+/* ── Request logging ── */
+const LOG_ENABLED = process.env.LOG_REQUESTS !== '0'
+app.use((req, res, next) => {
+  if (!LOG_ENABLED) return next()
+  const start = Date.now()
+  const { method, originalUrl } = req
+  res.on('finish', () => {
+    const ms = Date.now() - start
+    const s = res.statusCode
+    const c = s >= 500 ? '\x1b[31m' : s >= 400 ? '\x1b[33m' : '\x1b[32m'
+    console.log(`${c}${method}\x1b[0m ${originalUrl} ${s} ${ms}ms user=${req.user?.login ?? '-'}`)
+  })
+  next()
+})
+
 const COOKIE_OPTS = {
   httpOnly: true,
   sameSite: 'lax',
@@ -548,6 +563,27 @@ app.delete('/api/columns/:date', requireAuth, async (req, res) => {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return res.status(400).json({ error: 'invalid date' })
   await query(`DELETE FROM columns WHERE user_id = $1 AND date = $2`, [req.user.id, date])
   res.json({ ok: true })
+})
+
+/* --------------------------------- АДМИНКА -------------------------------- */
+
+app.get('/api/admin/stats', requireAuth, async (req, res) => {
+  const uid = req.user.id
+  const [tasks, links, tags, folders, sessions, doneTasks, notes] = await Promise.all([
+    query(`SELECT count(*)::int AS n FROM tasks WHERE user_id = $1`, [uid]),
+    query(`SELECT count(*)::int AS n FROM links WHERE user_id = $1`, [uid]),
+    query(`SELECT count(*)::int AS n FROM tags WHERE user_id = $1`, [uid]),
+    query(`SELECT count(*)::int AS n FROM folders WHERE user_id = $1`, [uid]),
+    query(`SELECT count(*)::int AS n FROM sessions WHERE user_id = $1`, [uid]),
+    query(`SELECT count(*)::int AS n FROM tasks WHERE user_id = $1 AND done`, [uid]),
+    query(`SELECT count(*)::int AS n FROM tasks WHERE user_id = $1 AND type = 'note'`, [uid]),
+  ])
+  res.json({
+    tasks: tasks.rows[0].n, doneTasks: doneTasks.rows[0].n, notes: notes.rows[0].n,
+    links: links.rows[0].n, tags: tags.rows[0].n, folders: folders.rows[0].n,
+    activeSessions: sessions.rows[0].n,
+    createdAt: (await query(`SELECT created_at FROM users WHERE id = $1`, [uid])).rows[0]?.created_at?.toISOString() ?? null,
+  })
 })
 
 /* --------------------------------- SWAGGER --------------------------------- */

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { formatWeekLabel } from '../date'
 import type { FilterType, View } from '../types'
+import { AdminPanel } from './AdminPanel'
 import { CalendarPopup } from './CalendarPopup'
 
 interface WeekStripProps {
@@ -39,6 +40,7 @@ export function WeekStrip({
   onFilterType,
 }: WeekStripProps) {
   const [calOpen, setCalOpen] = useState(false)
+  const [adminOpen, setAdminOpen] = useState(false)
   const wrapRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -110,15 +112,16 @@ export function WeekStrip({
         Сегодня
       </button>
       {userLogin && (
-        <div className="user-chip" title="Аккаунт">
-          <span className="user-login">{userLogin}</span>
+        <div className="user-chip" title="Панель управления">
+          <span className="user-login" onClick={() => setAdminOpen(true)} style={{ cursor: 'pointer' }}>{userLogin}</span>
           {onLogout && (
-            <button className="logout-btn" onClick={onLogout} title="Выйти и сменить аккаунт">
+            <button className="logout-btn" onClick={onLogout} title="Выйти">
               Выйти
             </button>
           )}
         </div>
       )}
+      {adminOpen && <AdminPanel onClose={() => setAdminOpen(false)} />}
     </header>
   )
 }

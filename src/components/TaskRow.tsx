@@ -14,7 +14,6 @@ interface TaskRowProps {
   onUpdateStyle?: (id: string, style: CardStyle | null) => Promise<void>
   onDragStart?: (e: React.DragEvent, taskId: string) => void
   onPointerDown?: (e: React.PointerEvent, task: Task) => void
-  onToggleSelect?: (id: string) => void
   allTags?: string[]
   onUpdateTags?: (id: string, tags: string[]) => void
   folders?: Folder[]
@@ -33,7 +32,6 @@ export function TaskRow({
   onUpdateStyle,
   onDragStart,
   onPointerDown,
-  onToggleSelect,
   allTags = [],
   onUpdateTags,
   folders = [],
@@ -41,9 +39,13 @@ export function TaskRow({
 }: TaskRowProps) {
   const textRef = useRef<HTMLDivElement>(null)
   const rootRef = useRef<HTMLDivElement>(null)
-  const { registerEl, startConnection } = useArrows()
+  const { registerEl, startConnection, hoveredLink, links } = useArrows()
   const [menu, setMenu] = useState<{ x: number; y: number } | null>(null)
   const [newTag, setNewTag] = useState('')
+
+  const isArrowHovered = hoveredLink != null && links.some(
+    (l) => l.id === hoveredLink && (l.from === task.id || l.to === task.id),
+  )
 
   useEffect(() => {
     registerEl(task.id, rootRef.current)
@@ -96,11 +98,6 @@ export function TaskRow({
     setNewTag('')
   }
   const handlePointerDown = (e: React.PointerEvent) => {
-    if (e.shiftKey || e.ctrlKey || e.metaKey) {
-      e.stopPropagation()
-      onToggleSelect?.(task.id)
-      return
-    }
     onPointerDown?.(e, task)
   }
 
@@ -110,16 +107,10 @@ export function TaskRow({
     <div
       ref={rootRef}
       data-task-id={task.id}
-      className={`task${task.done ? ' done' : ''}${selected ? ' nav-selected' : ''}${linked ? ' linked' : ''}${edge ? ' edge' : ''}${style?.hatch ? ' hatch' : ''}${isScript ? ' script' : ''}${isNote ? ' note-card' : ''}`}
+      className={`task${task.done ? ' done' : ''}${selected ? ' nav-selected' : ''}${linked ? ' linked' : ''}${edge ? ' edge' : ''}${style?.hatch ? ' hatch' : ''}${isScript ? ' script' : ''}${isNote ? ' note-card' : ''}${isArrowHovered ? ' arrow-hovered' : ''}`}
       style={rootStyle}
       draggable={!task.done}
       onPointerDown={handlePointerDown}
-      onClickCapture={(e) => {
-        if (e.ctrlKey || e.metaKey || e.shiftKey) {
-          e.preventDefault()
-          e.stopPropagation()
-        }
-      }}
       onDragStart={!task.done && onDragStart ? (e) => onDragStart(e, task.id) : undefined}
       onContextMenu={(e) => {
         e.preventDefault()

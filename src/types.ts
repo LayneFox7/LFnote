@@ -41,11 +41,23 @@ export interface CardStyle {
 
 export type ArrowType = 'straight' | 'elbow' | 'rounded' | 'routed' | 'sketch'
 
+export type LinkType = 'dependency' | 'dataflow' | 'sequence' | 'parent' | 'status'
+
+export const LINK_TYPE_LABEL: Record<LinkType, string> = {
+  dependency: 'Зависит от',
+  dataflow: 'Передает данные',
+  sequence: 'Последовательность',
+  parent: 'Родитель',
+  status: 'Переход статуса',
+}
+
 export interface ArrowStyle {
   type?: ArrowType
   color?: string
   width?: number
   dashed?: boolean
+  label?: string
+  linkType?: LinkType
 }
 
 export interface Link {

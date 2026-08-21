@@ -250,6 +250,15 @@
   border-radius: 8px;
 }
 
+.drop-indicator {
+  height: 3px;
+  background: var(--accent);
+  border-radius: 2px;
+  margin: 1px 8px;
+  box-shadow: 0 0 6px var(--accent);
+  transition: opacity 0.1s;
+}
+
 .task {
   position: relative;
   display: flex;
@@ -2221,4 +2230,129 @@ body.marquee-active {
 
 .rl-add-btn:hover {
   opacity: 0.9;
+}
+
+/* ─────────────────────── Arrow enhancements ─────────────────────── */
+
+@keyframes ants {
+  to { stroke-dashoffset: -16; }
+}
+
+.arrow-line.hovered {
+  filter: drop-shadow(0 0 4px var(--accent));
+}
+
+.arrow-line.dashed {
+  animation: ants 0.6s linear infinite;
+}
+
+.arrow-label {
+  pointer-events: none;
+  user-select: none;
+}
+
+.task.arrow-hovered {
+  box-shadow: 0 0 0 2px var(--accent), 0 0 8px var(--accent);
+  transition: box-shadow 0.15s ease;
+}
+
+.menu-input {
+  flex: 1;
+  padding: 5px 8px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg-card);
+  color: var(--text);
+  font-size: 12px;
+  outline: none;
+  min-width: 0;
+}
+
+.menu-input:focus {
+  border-color: var(--accent);
+}
+
+/* ─────────────────────── Admin Panel ─────────────────────── */
+
+.admin-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.admin-panel {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 24px;
+  min-width: 380px;
+  max-width: 520px;
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.18);
+}
+
+.admin-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+
+.admin-title {
+  font-weight: 600;
+  font-size: 16px;
+}
+
+.admin-close {
+  background: none;
+  border: none;
+  font-size: 18px;
+  cursor: pointer;
+  color: var(--text);
+  opacity: 0.5;
+  padding: 4px 8px;
+}
+
+.admin-close:hover {
+  opacity: 1;
+}
+
+.admin-error {
+  color: #e74c3c;
+  margin-bottom: 12px;
+  font-size: 13px;
+}
+
+.admin-loading {
+  text-align: center;
+  padding: 32px 0;
+  opacity: 0.5;
+}
+
+.admin-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.admin-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 14px 16px;
+}
+
+.admin-card-num {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--accent);
+}
+
+.admin-card-label {
+  font-size: 12px;
+  opacity: 0.6;
+  margin-top: 2px;
 }
